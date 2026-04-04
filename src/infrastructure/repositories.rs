@@ -1,0 +1,66 @@
+use crate::domain::user::{CreateUser, User, UserRepository};
+use async_trait::async_trait;
+use sqlx::PgPool;
+
+pub struct SqlxUserRepository {
+    pool: PgPool,
+}
+
+impl SqlxUserRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait]
+impl UserRepository for SqlxUserRepository {
+    async fn create(&self, user: &CreateUser, password_hash: &str) -> Result<User, sqlx::Error> {
+        let user = sqlx::query_as!(
+            User,
+            r#"
+            INSERT INTO users (username, email, password_hash)
+            VALUES ($1, $2, $3)
+            RETURNING id, username, email, password_hash, created_at, updated_at
+            "#,
+            user.username,
+            user.email,
+            password_hash
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(user)
+    }
+
+    async fn find_by_email(&self, email: &str) -> Result<Option<User>, sqlx::Error> {
+        let user = sqlx::query_as!(
+            User,
+            r#"
+            SELECT id, username, email, password_hash, created_at, updated_at
+            FROM users
+            WHERE email = $1
+            "#,
+            email
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(user)
+    }
+
+    async fn find_by_username(&self, username: &str) -> Result<Option<User>, sqlx::Error> {
+        let user = sqlx::query_as!(
+            User,
+            r#"
+            SELECT id, username, email, password_hash, created_at, updated_at
+            FROM users
+            WHERE username = $1
+            "#,
+            username
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(user)
+    }
+}

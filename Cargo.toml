@@ -1,0 +1,38 @@
+[package]
+name = "be-rust-task-management"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Web Framework
+axum = "0.7"
+tokio = { version = "1.0", features = ["full"] }
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+async-trait = "0.1"
+
+# Database
+sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-rustls", "uuid", "chrono"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Logging/Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Environment Variables
+dotenvy = "0.15"
+
+# Utilities
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Security
+argon2 = "0.5"
+jsonwebtoken = "9.2"
+
+# Documentation (Swagger)
+utoipa = { version = "4.2", features = ["axum_extras", "uuid", "chrono"] }
+utoipa-swagger-ui = { version = "6.0", features = ["axum"] }

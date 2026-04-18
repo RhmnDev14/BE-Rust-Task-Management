@@ -1,12 +1,14 @@
 use crate::api::handlers::{self, login_user, register_user};
+use crate::api::s3_handlers::{self as s3h, get_presigned_url, PresignedUrlRequest, PresignedUrlResponse};
 use crate::api::task_handlers::{
     self as th, create_task, delete_task, get_all_tasks, get_task_by_id, get_tasks_by_user,
     update_task,
 };
 use crate::application::task_service::TaskService;
 use crate::application::user_service::UserService;
+use crate::infrastructure::s3::S3Client;
 use crate::domain::task::{CreateTask, TaskResponse, UpdateTask};
-use crate::domain::user::{CreateUser, LoginUser, UserResponse};
+use crate::domain::user::{CreateUser, LoginUser, UpdateUser, UserResponse};
 use crate::domain::error::ErrorResponse;
 use axum::{
     routing::{get, post},
@@ -46,20 +48,29 @@ impl Modify for BearerSecurityAddon {
     paths(
         handlers::register_user,
         handlers::login_user,
+        handlers::get_me,
+        handlers::update_me,
         th::create_task,
         th::get_all_tasks,
         th::get_task_by_id,
         th::get_tasks_by_user,
         th::update_task,
         th::delete_task,
+        s3h::get_presigned_url,
     ),
     components(
-        schemas(CreateUser, LoginUser, UserResponse, CreateTask, UpdateTask, TaskResponse, ErrorResponse)
+        schemas(
+            CreateUser, LoginUser, UpdateUser, UserResponse, 
+            CreateTask, UpdateTask, TaskResponse, 
+            ErrorResponse,
+            PresignedUrlRequest, PresignedUrlResponse
+        )
     ),
     modifiers(&BearerSecurityAddon),
     tags(
         (name = "auth", description = "Layanan autentikasi dan registrasi user"),
-        (name = "tasks", description = "Layanan manajemen tugas (Memerlukan JWT Token)")
+        (name = "tasks", description = "Layanan manajemen tugas (Memerlukan JWT Token)"),
+        (name = "s3", description = "Layanan S3/MinIO untuk file storage")
     ),
     info(
         title = "Task Management API",
@@ -73,7 +84,11 @@ pub struct ApiDoc;
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 
-pub fn create_router(user_service: Arc<UserService>, task_service: Arc<TaskService>) -> Router {
+pub fn create_router(
+    user_service: Arc<UserService>, 
+    task_service: Arc<TaskService>,
+    s3_client: Arc<S3Client>,
+) -> Router {
     let task_routes = Router::new()
         .route("/", post(create_task).get(get_all_tasks))
         .route(
@@ -83,11 +98,17 @@ pub fn create_router(user_service: Arc<UserService>, task_service: Arc<TaskServi
         .route("/user/:id_user", get(get_tasks_by_user))
         .with_state(task_service);
 
+    let s3_routes = Router::new()
+        .route("/presigned-url", post(get_presigned_url))
+        .with_state(s3_client);
+
     Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/api/auth/register", post(register_user))
         .route("/api/auth/login", post(login_user))
+        .route("/api/auth/me", get(handlers::get_me).put(handlers::update_me))
         .with_state(user_service)
         .nest("/api/tasks", task_routes)
+        .nest("/api/s3", s3_routes)
         .layer(TraceLayer::new_for_http())
 }

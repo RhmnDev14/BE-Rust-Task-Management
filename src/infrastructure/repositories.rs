@@ -1,4 +1,4 @@
-use crate::domain::user::{CreateUser, User, UserRepository};
+use crate::domain::user::{CreateUser, UpdateUser, User, UserRepository};
 use async_trait::async_trait;
 use sqlx::PgPool;
 
@@ -20,7 +20,7 @@ impl UserRepository for SqlxUserRepository {
             r#"
             INSERT INTO users (username, email, password_hash)
             VALUES ($1, $2, $3)
-            RETURNING id, username, email, password_hash, created_at, updated_at
+            RETURNING id, username, email, password_hash, avatar_url, created_at, updated_at
             "#,
             user.username,
             user.email,
@@ -36,7 +36,7 @@ impl UserRepository for SqlxUserRepository {
         let user = sqlx::query_as!(
             User,
             r#"
-            SELECT id, username, email, password_hash, created_at, updated_at
+            SELECT id, username, email, password_hash, avatar_url, created_at, updated_at
             FROM users
             WHERE email = $1
             "#,
@@ -52,7 +52,7 @@ impl UserRepository for SqlxUserRepository {
         let user = sqlx::query_as!(
             User,
             r#"
-            SELECT id, username, email, password_hash, created_at, updated_at
+            SELECT id, username, email, password_hash, avatar_url, created_at, updated_at
             FROM users
             WHERE username = $1
             "#,
@@ -62,5 +62,43 @@ impl UserRepository for SqlxUserRepository {
         .await?;
 
         Ok(user)
+    }
+
+    async fn find_by_id(&self, id: &uuid::Uuid) -> Result<Option<User>, sqlx::Error> {
+        let user = sqlx::query_as!(
+            User,
+            r#"
+            SELECT id, username, email, password_hash, avatar_url, created_at, updated_at
+            FROM users
+            WHERE id = $1
+            "#,
+            id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(user)
+    }
+
+    async fn update(&self, id: &uuid::Uuid, user: &UpdateUser) -> Result<User, sqlx::Error> {
+        let updated_user = sqlx::query_as!(
+            User,
+            r#"
+            UPDATE users
+            SET 
+                username = COALESCE($1, username),
+                avatar_url = COALESCE($2, avatar_url),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $3
+            RETURNING id, username, email, password_hash, avatar_url, created_at, updated_at
+            "#,
+            user.username,
+            user.avatar_url,
+            id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(updated_user)
     }
 }

@@ -4,7 +4,9 @@ use crate::application::user_service::UserService;
 use crate::infrastructure::repositories::SqlxUserRepository;
 use crate::infrastructure::task_repository::SqlxTaskRepository;
 use dotenvy::dotenv;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use sqlx::ConnectOptions;
+use tracing::log::LevelFilter;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -22,15 +24,20 @@ async fn main() {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             env::var("RUST_LOG")
-                .unwrap_or_else(|_| "be_rust_task_management=debug,tower_http=debug".into()),
+                .unwrap_or_else(|_| "be_rust_task_management=debug,tower_http=debug,sqlx=info".into()),
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let connection_options = database_url
+        .parse::<PgConnectOptions>()
+        .expect("Invalid DATABASE_URL")
+        .log_statements(LevelFilter::Info);
+
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect(&database_url)
+        .connect_with(connection_options)
         .await
         .expect("Failed to connect to Postgres");
 
@@ -49,7 +56,10 @@ async fn main() {
     let task_repository = Box::new(SqlxTaskRepository::new(pool));
     let task_service = Arc::new(TaskService::new(task_repository));
 
-    let app = create_router(user_service, task_service);
+    // S3 client
+    let s3_client = Arc::new(crate::infrastructure::s3::S3Client::new().await);
+
+    let app = create_router(user_service, task_service, s3_client);
 
     let host = env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = env::var("PORT").unwrap_or_else(|_| "3000".to_string());
@@ -61,5 +71,34 @@ async fn main() {
     tracing::info!("Swagger UI available at http://{}/swagger-ui", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .unwrap();
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    tracing::info!("signal received, starting graceful shutdown");
 }

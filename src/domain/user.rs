@@ -9,6 +9,7 @@ pub struct User {
     pub id: Uuid,
     pub username: String,
     pub email: String,
+    pub avatar_url: Option<String>,
     #[serde(skip)]
     pub password_hash: String,
     pub created_at: Option<DateTime<Utc>>,
@@ -29,10 +30,17 @@ pub struct LoginUser {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct UpdateUser {
+    pub username: Option<String>,
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UserResponse {
     pub id: Uuid,
     pub username: String,
     pub email: String,
+    pub avatar_url: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -42,6 +50,8 @@ pub trait UserRepository: Send + Sync {
     async fn create(&self, user: &CreateUser, password_hash: &str) -> Result<User, sqlx::Error>;
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, sqlx::Error>;
     async fn find_by_username(&self, username: &str) -> Result<Option<User>, sqlx::Error>;
+    async fn find_by_id(&self, id: &Uuid) -> Result<Option<User>, sqlx::Error>;
+    async fn update(&self, id: &Uuid, user: &UpdateUser) -> Result<User, sqlx::Error>;
 }
 
 #[derive(Debug)]

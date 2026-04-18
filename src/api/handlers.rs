@@ -2,7 +2,7 @@
 use crate::{
     application::user_service::UserService,
     domain::error::ErrorResponse,
-    domain::user::{CreateUser, LoginUser, UserError},
+    domain::user::{CreateUser, LoginUser, UpdateUser, UserError},
 };
 use axum::{
     extract::State,
@@ -64,6 +64,68 @@ pub async fn login_user(
     })?;
 
     Ok(Json(json!({ "token": token })))
+}
+
+use crate::api::middleware::AuthUser;
+
+/// Mendapatkan profil user yang sedang login
+#[utoipa::path(
+    get,
+    path = "/api/auth/me",
+    tag = "auth",
+    responses(
+        (status = 200, description = "User profile retrieved successfully", body = UserResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(("bearer_auth" = []))
+)]
+#[tracing::instrument(skip_all, fields(user_id = %auth.user_id))]
+pub async fn get_me(
+    auth: AuthUser,
+    State(user_service): State<Arc<UserService>>,
+) -> Result<impl IntoResponse, AppError> {
+    tracing::info!("Retrieving profile for user: {}", auth.user_id);
+    let user_response = user_service
+        .get_user_by_id(auth.user_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Profile retrieval failed: {:?}", e);
+            AppError::from(e)
+        })?;
+
+    Ok(Json(user_response))
+}
+
+/// Memperbarui profil user yang sedang login
+#[utoipa::path(
+    put,
+    path = "/api/auth/me",
+    tag = "auth",
+    request_body = UpdateUser,
+    responses(
+        (status = 200, description = "User profile updated successfully", body = UserResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(("bearer_auth" = []))
+)]
+#[tracing::instrument(skip_all, fields(user_id = %auth.user_id))]
+pub async fn update_me(
+    auth: AuthUser,
+    State(user_service): State<Arc<UserService>>,
+    Json(payload): Json<UpdateUser>,
+) -> Result<impl IntoResponse, AppError> {
+    tracing::info!("Updating profile for user: {}", auth.user_id);
+    let user_response = user_service
+        .update_profile(auth.user_id, payload)
+        .await
+        .map_err(|e| {
+            tracing::error!("Profile update failed: {:?}", e);
+            AppError::from(e)
+        })?;
+
+    Ok(Json(user_response))
 }
 
 // Simple Error wrapper for Axum response

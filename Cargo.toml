@@ -36,3 +36,8 @@ jsonwebtoken = "9.2"
 # Documentation (Swagger)
 utoipa = { version = "4.2", features = ["axum_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "6.0", features = ["axum"] }
+
+# S3 / MinIO
+aws-config = "1.1"
+aws-sdk-s3 = "1.21"
+aws-credential-types = "1.1"

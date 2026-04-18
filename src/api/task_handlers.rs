@@ -2,8 +2,8 @@
 use crate::{
     api::middleware::AuthUser,
     application::task_service::TaskService,
-    domain::task::{CreateTask, TaskError, UpdateTask, TaskResponse},
     domain::error::ErrorResponse,
+    domain::task::{CreateTask, TaskError, TaskResponse, UpdateTask},
 };
 use axum::{
     extract::{Path, State},
@@ -37,13 +37,10 @@ pub async fn create_task(
     Json(payload): Json<CreateTask>,
 ) -> Result<impl IntoResponse, TaskAppError> {
     tracing::info!("Creating task: {}", payload.task_name);
-    let task = task_service
-        .create_task(payload)
-        .await
-        .map_err(|e| {
-            tracing::error!("Create task failed: {:?}", e);
-            TaskAppError::from(e)
-        })?;
+    let task = task_service.create_task(payload).await.map_err(|e| {
+        tracing::error!("Create task failed: {:?}", e);
+        TaskAppError::from(e)
+    })?;
     Ok((StatusCode::CREATED, Json(task)))
 }
 
@@ -67,13 +64,10 @@ pub async fn get_all_tasks(
     State(task_service): State<Arc<TaskService>>,
 ) -> Result<impl IntoResponse, TaskAppError> {
     tracing::info!("Retrieving all tasks");
-    let tasks = task_service
-        .get_all_tasks()
-        .await
-        .map_err(|e| {
-            tracing::error!("Retrieve all tasks failed: {:?}", e);
-            TaskAppError::from(e)
-        })?;
+    let tasks = task_service.get_all_tasks().await.map_err(|e| {
+        tracing::error!("Retrieve all tasks failed: {:?}", e);
+        TaskAppError::from(e)
+    })?;
     Ok(Json(tasks))
 }
 
@@ -102,13 +96,10 @@ pub async fn get_task_by_id(
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, TaskAppError> {
     tracing::info!("Retrieving task by ID: {}", id);
-    let task = task_service
-        .get_task_by_id(id)
-        .await
-        .map_err(|e| {
-            tracing::error!("Retrieve task by ID failed: {:?}", e);
-            TaskAppError::from(e)
-        })?;
+    let task = task_service.get_task_by_id(id).await.map_err(|e| {
+        tracing::error!("Retrieve task by ID failed: {:?}", e);
+        TaskAppError::from(e)
+    })?;
     Ok(Json(task))
 }
 
@@ -168,13 +159,10 @@ pub async fn update_task(
     Json(payload): Json<UpdateTask>,
 ) -> Result<impl IntoResponse, TaskAppError> {
     tracing::info!("Updating task ID: {}", id);
-    let task = task_service
-        .update_task(id, payload)
-        .await
-        .map_err(|e| {
-            tracing::error!("Update task ID failed: {:?}", e);
-            TaskAppError::from(e)
-        })?;
+    let task = task_service.update_task(id, payload).await.map_err(|e| {
+        tracing::error!("Update task ID failed: {:?}", e);
+        TaskAppError::from(e)
+    })?;
     Ok(Json(task))
 }
 
@@ -203,13 +191,10 @@ pub async fn delete_task(
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, TaskAppError> {
     tracing::info!("Deleting task ID: {}", id);
-    task_service
-        .delete_task(id)
-        .await
-        .map_err(|e| {
-            tracing::error!("Delete task ID failed: {:?}", e);
-            TaskAppError::from(e)
-        })?;
+    task_service.delete_task(id).await.map_err(|e| {
+        tracing::error!("Delete task ID failed: {:?}", e);
+        TaskAppError::from(e)
+    })?;
     Ok(Json(json!({ "message": "Task berhasil dihapus" })))
 }
 

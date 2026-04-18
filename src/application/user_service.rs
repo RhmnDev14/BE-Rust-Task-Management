@@ -1,4 +1,6 @@
-use crate::domain::user::{CreateUser, LoginUser, UserError, UserRepository, UserResponse};
+use crate::domain::user::{
+    CreateUser, LoginUser, UpdateUser, UserError, UserRepository, UserResponse,
+};
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
@@ -27,6 +29,7 @@ impl UserService {
         }
     }
 
+    #[tracing::instrument(skip(self, create_user))]
     pub async fn register(&self, create_user: CreateUser) -> Result<UserResponse, UserError> {
         if self
             .user_repository
@@ -63,11 +66,13 @@ impl UserService {
             id: user.id,
             username: user.username,
             email: user.email,
+            avatar_url: user.avatar_url,
             created_at: user.created_at,
             updated_at: user.updated_at,
         })
     }
 
+    #[tracing::instrument(skip(self, login_user), fields(email = %login_user.email))]
     pub async fn login(&self, login_user: LoginUser) -> Result<String, UserError> {
         let user = self
             .user_repository
@@ -101,5 +106,41 @@ impl UserService {
         .map_err(|_| UserError::TokenCreationError)?;
 
         Ok(token)
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn get_user_by_id(&self, id: uuid::Uuid) -> Result<UserResponse, UserError> {
+        let user = self
+            .user_repository
+            .find_by_id(&id)
+            .await?
+            .ok_or(UserError::UserNotFound)?;
+
+        Ok(UserResponse {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            avatar_url: user.avatar_url,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
+        })
+    }
+
+    #[tracing::instrument(skip(self, update_user))]
+    pub async fn update_profile(
+        &self,
+        id: uuid::Uuid,
+        update_user: UpdateUser,
+    ) -> Result<UserResponse, UserError> {
+        let user = self.user_repository.update(&id, &update_user).await?;
+
+        Ok(UserResponse {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            avatar_url: user.avatar_url,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
+        })
     }
 }

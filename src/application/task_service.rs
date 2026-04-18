@@ -10,6 +10,7 @@ impl TaskService {
         Self { task_repository }
     }
 
+    #[tracing::instrument(skip(self, create_task))]
     pub async fn create_task(&self, create_task: CreateTask) -> Result<TaskResponse, TaskError> {
         let task = self.task_repository.create(&create_task).await?;
         Ok(TaskResponse {
@@ -22,6 +23,7 @@ impl TaskService {
         })
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn get_all_tasks(&self) -> Result<Vec<TaskResponse>, TaskError> {
         let tasks = self.task_repository.find_all().await?;
         let responses = tasks
@@ -38,6 +40,7 @@ impl TaskService {
         Ok(responses)
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn get_task_by_id(&self, id: Uuid) -> Result<TaskResponse, TaskError> {
         let task = self
             .task_repository
@@ -54,6 +57,7 @@ impl TaskService {
         })
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn get_tasks_by_user(&self, id_user: Uuid) -> Result<Vec<TaskResponse>, TaskError> {
         let tasks = self.task_repository.find_by_user_id(id_user).await?;
         let responses = tasks
@@ -70,6 +74,7 @@ impl TaskService {
         Ok(responses)
     }
 
+    #[tracing::instrument(skip(self, update_task))]
     pub async fn update_task(
         &self,
         id: Uuid,
@@ -90,6 +95,7 @@ impl TaskService {
         })
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn delete_task(&self, id: Uuid) -> Result<(), TaskError> {
         let deleted = self.task_repository.delete(id).await?;
         if !deleted {

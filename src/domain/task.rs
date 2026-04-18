@@ -42,6 +42,7 @@ pub trait TaskRepository: Send + Sync {
     async fn find_all(&self) -> Result<Vec<Task>, sqlx::Error>;
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Task>, sqlx::Error>;
     async fn find_by_user_id(&self, id_user: Uuid) -> Result<Vec<Task>, sqlx::Error>;
+    async fn search(&self, id_user: Uuid, query: &str) -> Result<Vec<Task>, sqlx::Error>;
     async fn update(&self, id: Uuid, task: &UpdateTask) -> Result<Option<Task>, sqlx::Error>;
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
 }

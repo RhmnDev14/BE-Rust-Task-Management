@@ -2,7 +2,7 @@ use crate::api::handlers::{self, login_user, register_user};
 use crate::api::s3_handlers::{self as s3h, get_presigned_url, PresignedUrlRequest, PresignedUrlResponse};
 use crate::api::task_handlers::{
     self as th, create_task, delete_task, get_all_tasks, get_task_by_id, get_tasks_by_user,
-    update_task,
+    search_tasks, update_task,
 };
 use crate::application::task_service::TaskService;
 use crate::application::user_service::UserService;
@@ -55,6 +55,7 @@ impl Modify for BearerSecurityAddon {
         th::get_all_tasks,
         th::get_task_by_id,
         th::get_tasks_by_user,
+        th::search_tasks,
         th::update_task,
         th::delete_task,
         s3h::get_presigned_url,
@@ -97,6 +98,7 @@ pub fn create_router(
             get(get_task_by_id).put(update_task).delete(delete_task),
         )
         .route("/my", get(get_tasks_by_user))
+        .route("/search", get(th::search_tasks))
         .with_state(task_service);
 
     let s3_routes = Router::new()

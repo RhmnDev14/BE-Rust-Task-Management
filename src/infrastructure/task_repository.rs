@@ -81,6 +81,25 @@ impl TaskRepository for SqlxTaskRepository {
         Ok(tasks)
     }
 
+    async fn search(&self, id_user: Uuid, query: &str) -> Result<Vec<Task>, sqlx::Error> {
+        let search_pattern = format!("%{}%", query);
+        let tasks = sqlx::query_as!(
+            Task,
+            r#"
+            SELECT id, task_name, description, id_user, created_at, updated_at
+            FROM tasks
+            WHERE id_user = $1 AND (task_name ILIKE $2 OR description ILIKE $2)
+            ORDER BY created_at DESC
+            "#,
+            id_user,
+            search_pattern
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(tasks)
+    }
+
     async fn update(&self, id: Uuid, task: &UpdateTask) -> Result<Option<Task>, sqlx::Error> {
         let updated = sqlx::query_as!(
             Task,

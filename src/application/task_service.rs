@@ -74,6 +74,23 @@ impl TaskService {
         Ok(responses)
     }
 
+    #[tracing::instrument(skip(self))]
+    pub async fn search_tasks(&self, id_user: Uuid, query: &str) -> Result<Vec<TaskResponse>, TaskError> {
+        let tasks = self.task_repository.search(id_user, query).await?;
+        let responses = tasks
+            .into_iter()
+            .map(|task| TaskResponse {
+                id: task.id,
+                task_name: task.task_name,
+                description: task.description,
+                id_user: task.id_user,
+                created_at: task.created_at,
+                updated_at: task.updated_at,
+            })
+            .collect();
+        Ok(responses)
+    }
+
     #[tracing::instrument(skip(self, update_task))]
     pub async fn update_task(
         &self,

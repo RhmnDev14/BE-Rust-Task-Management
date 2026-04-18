@@ -7,11 +7,17 @@ use crate::{
     domain::user::MessageResponse,
 };
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+pub struct SearchParams {
+    pub q: String,
+}
 use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -128,6 +134,37 @@ pub async fn get_tasks_by_user(
         .map_err(TaskAppError::from)?;
     Ok(Json(tasks))
 }
+
+// ─── Search Tasks ────────────────────────────────────────────────────────────
+
+/// Mencari tugas berdasarkan nama atau deskripsi
+#[utoipa::path(
+    get,
+    path = "/api/tasks/search",
+    params(
+        ("q" = String, Query, description = "Query pencarian")
+    ),
+    responses(
+        (status = 200, description = "Daftar task hasil pencarian", body = Vec<TaskResponse>),
+        (status = 401, description = "Unauthorized - token tidak valid", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(("bearer_auth" = [])),
+    tag = "tasks"
+)]
+pub async fn search_tasks(
+    auth: AuthUser,
+    State(task_service): State<Arc<TaskService>>,
+    Query(params): Query<SearchParams>,
+) -> Result<impl IntoResponse, TaskAppError> {
+    tracing::info!("Searching tasks with query: {}", params.q);
+    let tasks = task_service
+        .search_tasks(auth.user_id, &params.q)
+        .await
+        .map_err(TaskAppError::from)?;
+    Ok(Json(tasks))
+}
+
 
 // ─── Update Task ─────────────────────────────────────────────────────────────
 

@@ -36,6 +36,12 @@ pub struct UpdateUser {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ChangePassword {
+    pub current_password: String,
+    pub new_password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UserResponse {
     pub id: Uuid,
     pub username: String,
@@ -52,6 +58,7 @@ pub trait UserRepository: Send + Sync {
     async fn find_by_username(&self, username: &str) -> Result<Option<User>, sqlx::Error>;
     async fn find_by_id(&self, id: &Uuid) -> Result<Option<User>, sqlx::Error>;
     async fn update(&self, id: &Uuid, user: &UpdateUser) -> Result<User, sqlx::Error>;
+    async fn update_password(&self, id: &Uuid, password_hash: &str) -> Result<(), sqlx::Error>;
 }
 
 #[derive(Debug)]

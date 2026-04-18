@@ -2,7 +2,7 @@
 use crate::{
     application::user_service::UserService,
     domain::error::ErrorResponse,
-    domain::user::{CreateUser, LoginUser, UpdateUser, UserError},
+    domain::user::{ChangePassword, CreateUser, LoginUser, UpdateUser, UserError},
 };
 use axum::{
     extract::State,
@@ -126,6 +126,37 @@ pub async fn update_me(
         })?;
 
     Ok(Json(user_response))
+}
+
+/// Mengubah password user yang sedang login
+#[utoipa::path(
+    put,
+    path = "/api/auth/change-password",
+    tag = "auth",
+    request_body = ChangePassword,
+    responses(
+        (status = 200, description = "Password changed successfully"),
+        (status = 401, description = "Current password is incorrect", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(("bearer_auth" = []))
+)]
+#[tracing::instrument(skip_all, fields(user_id = %auth.user_id))]
+pub async fn change_password(
+    auth: AuthUser,
+    State(user_service): State<Arc<UserService>>,
+    Json(payload): Json<ChangePassword>,
+) -> Result<impl IntoResponse, AppError> {
+    tracing::info!("Changing password for user: {}", auth.user_id);
+    user_service
+        .change_password(auth.user_id, payload)
+        .await
+        .map_err(|e| {
+            tracing::error!("Password change failed: {:?}", e);
+            AppError::from(e)
+        })?;
+
+    Ok(Json(json!({ "message": "Password berhasil diubah" })))
 }
 
 // Simple Error wrapper for Axum response

@@ -8,10 +8,10 @@ use crate::application::task_service::TaskService;
 use crate::application::user_service::UserService;
 use crate::infrastructure::s3::S3Client;
 use crate::domain::task::{CreateTask, TaskResponse, UpdateTask};
-use crate::domain::user::{CreateUser, LoginUser, UpdateUser, UserResponse};
+use crate::domain::user::{ChangePassword, CreateUser, LoginUser, UpdateUser, UserResponse};
 use crate::domain::error::ErrorResponse;
 use axum::{
-    routing::{get, post},
+    routing::{get, post, put},
     Router,
 };
 use std::sync::Arc;
@@ -50,6 +50,7 @@ impl Modify for BearerSecurityAddon {
         handlers::login_user,
         handlers::get_me,
         handlers::update_me,
+        handlers::change_password,
         th::create_task,
         th::get_all_tasks,
         th::get_task_by_id,
@@ -60,7 +61,7 @@ impl Modify for BearerSecurityAddon {
     ),
     components(
         schemas(
-            CreateUser, LoginUser, UpdateUser, UserResponse, 
+            CreateUser, LoginUser, UpdateUser, ChangePassword, UserResponse, 
             CreateTask, UpdateTask, TaskResponse, 
             ErrorResponse,
             PresignedUrlRequest, PresignedUrlResponse
@@ -107,6 +108,7 @@ pub fn create_router(
         .route("/api/auth/register", post(register_user))
         .route("/api/auth/login", post(login_user))
         .route("/api/auth/me", get(handlers::get_me).put(handlers::update_me))
+        .route("/api/auth/change-password", put(handlers::change_password))
         .with_state(user_service)
         .nest("/api/tasks", task_routes)
         .nest("/api/s3", s3_routes)

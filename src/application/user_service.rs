@@ -143,4 +143,38 @@ impl UserService {
             updated_at: user.updated_at,
         })
     }
+
+    #[tracing::instrument(skip(self, change_password))]
+    pub async fn change_password(
+        &self,
+        id: uuid::Uuid,
+        change_password: crate::domain::user::ChangePassword,
+    ) -> Result<(), UserError> {
+        let user = self
+            .user_repository
+            .find_by_id(&id)
+            .await?
+            .ok_or(UserError::UserNotFound)?;
+
+        // Verify current password
+        let parsed_hash =
+            PasswordHash::new(&user.password_hash).map_err(|_| UserError::InvalidCredentials)?;
+
+        Argon2::default()
+            .verify_password(change_password.current_password.as_bytes(), &parsed_hash)
+            .map_err(|_| UserError::InvalidCredentials)?;
+
+        // Hash new password
+        let salt = SaltString::generate(&mut OsRng);
+        let new_password_hash = Argon2::default()
+            .hash_password(change_password.new_password.as_bytes(), &salt)
+            .map_err(|_| UserError::InvalidCredentials)?
+            .to_string();
+
+        self.user_repository
+            .update_password(&id, &new_password_hash)
+            .await?;
+
+        Ok(())
+    }
 }

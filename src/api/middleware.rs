@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String, // user_id (UUID as string)
+    pub id: String, // user_id explicitly
     pub exp: usize,
     pub iat: usize,
 }
@@ -63,7 +63,7 @@ where
 
         // 5. Parse sub (user_id) sebagai UUID
         let user_id =
-            Uuid::parse_str(&token_data.claims.sub).map_err(|_| AuthError::InvalidToken)?;
+            Uuid::parse_str(&token_data.claims.id).map_err(|_| AuthError::InvalidToken)?;
 
         Ok(AuthUser { user_id })
     }

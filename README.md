@@ -9,6 +9,7 @@ REST API for user management built with Rust, Axum, SQLx, and clean architecture
 - **Runtime**: Tokio
 - **Authentication**: JWT (Argon2 for password hashing)
 - **Documentation**: Swagger UI (Utoipa)
+- **Object Storage**: AWS S3 / MinIO compatible
 
 ## Prerequisites
 
@@ -49,6 +50,18 @@ cargo install sqlx-cli --no-default-features --features postgres
     sqlx migrate run
     ```
 
+4.  **Seed Dummy Data (Optional)**
+
+    you can run this command to seed dummy data:
+
+    ```bash
+    sqlx migrate run
+    ```
+
+    **Test Accounts:**
+    - `budi@example.com` / `password123`
+    - `siti@example.com` / `password123`
+
 ## Running the Application
 
 ```bash
@@ -62,6 +75,14 @@ The server will start at `http://127.0.0.1:3000`.
 Swagger UI is available at:
 
 [http://localhost:3000/swagger-ui](http://localhost:3000/swagger-ui)
+
+## Features
+
+- [x] CRUD Tasks
+- [x] User Authentication (Register/Login)
+- [x] S3 Image Upload for Tasks
+- [x] Auto-run Migrations on Startup
+- [x] Request Tracing & Logging
 
 ## Project Structure
 

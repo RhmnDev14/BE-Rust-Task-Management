@@ -8,7 +8,7 @@ use crate::application::task_service::TaskService;
 use crate::application::user_service::UserService;
 use crate::infrastructure::s3::S3Client;
 use crate::domain::task::{CreateTask, TaskResponse, UpdateTask};
-use crate::domain::user::{ChangePassword, CreateUser, LoginUser, UpdateUser, UserResponse};
+use crate::domain::user::{ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UserResponse};
 use crate::domain::error::ErrorResponse;
 use axum::{
     routing::{get, post, put},
@@ -61,7 +61,7 @@ impl Modify for BearerSecurityAddon {
     ),
     components(
         schemas(
-            CreateUser, LoginUser, UpdateUser, ChangePassword, UserResponse, 
+            CreateUser, LoginUser, UpdateUser, ChangePassword, UserResponse, MessageResponse,
             CreateTask, UpdateTask, TaskResponse, 
             ErrorResponse,
             PresignedUrlRequest, PresignedUrlResponse
@@ -96,7 +96,7 @@ pub fn create_router(
             "/:id",
             get(get_task_by_id).put(update_task).delete(delete_task),
         )
-        .route("/user/:id_user", get(get_tasks_by_user))
+        .route("/my", get(get_tasks_by_user))
         .with_state(task_service);
 
     let s3_routes = Router::new()

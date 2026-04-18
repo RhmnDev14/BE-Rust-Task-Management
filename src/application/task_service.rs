@@ -11,8 +11,8 @@ impl TaskService {
     }
 
     #[tracing::instrument(skip(self, create_task))]
-    pub async fn create_task(&self, create_task: CreateTask) -> Result<TaskResponse, TaskError> {
-        let task = self.task_repository.create(&create_task).await?;
+    pub async fn create_task(&self, create_task: CreateTask, id_user: Uuid) -> Result<TaskResponse, TaskError> {
+        let task = self.task_repository.create(&create_task, id_user).await?;
         Ok(TaskResponse {
             id: task.id,
             task_name: task.task_name,

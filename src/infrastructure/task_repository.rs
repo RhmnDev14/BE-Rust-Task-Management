@@ -15,7 +15,7 @@ impl SqlxTaskRepository {
 
 #[async_trait]
 impl TaskRepository for SqlxTaskRepository {
-    async fn create(&self, task: &CreateTask) -> Result<Task, sqlx::Error> {
+    async fn create(&self, task: &CreateTask, id_user: Uuid) -> Result<Task, sqlx::Error> {
         let task = sqlx::query_as!(
             Task,
             r#"
@@ -25,7 +25,7 @@ impl TaskRepository for SqlxTaskRepository {
             "#,
             task.task_name,
             task.description,
-            task.id_user
+            id_user
         )
         .fetch_one(&self.pool)
         .await?;

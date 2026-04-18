@@ -2,7 +2,7 @@
 use crate::{
     application::user_service::UserService,
     domain::error::ErrorResponse,
-    domain::user::{ChangePassword, CreateUser, LoginUser, UpdateUser, UserError},
+    domain::user::{ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UserError, UserResponse},
 };
 use axum::{
     extract::State,
@@ -135,7 +135,7 @@ pub async fn update_me(
     tag = "auth",
     request_body = ChangePassword,
     responses(
-        (status = 200, description = "Password changed successfully"),
+        (status = 200, description = "Password changed successfully", body = MessageResponse),
         (status = 401, description = "Current password is incorrect", body = ErrorResponse),
         (status = 500, description = "Internal server error", body = ErrorResponse)
     ),
@@ -156,7 +156,7 @@ pub async fn change_password(
             AppError::from(e)
         })?;
 
-    Ok(Json(json!({ "message": "Password berhasil diubah" })))
+    Ok(Json(MessageResponse { message: "Password berhasil diubah".to_string() }))
 }
 
 // Simple Error wrapper for Axum response

@@ -18,7 +18,6 @@ pub struct Task {
 pub struct CreateTask {
     pub task_name: String,
     pub description: Option<String>,
-    pub id_user: Uuid,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -39,7 +38,7 @@ pub struct TaskResponse {
 
 #[async_trait::async_trait]
 pub trait TaskRepository: Send + Sync {
-    async fn create(&self, task: &CreateTask) -> Result<Task, sqlx::Error>;
+    async fn create(&self, task: &CreateTask, id_user: Uuid) -> Result<Task, sqlx::Error>;
     async fn find_all(&self) -> Result<Vec<Task>, sqlx::Error>;
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Task>, sqlx::Error>;
     async fn find_by_user_id(&self, id_user: Uuid) -> Result<Vec<Task>, sqlx::Error>;

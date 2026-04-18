@@ -51,6 +51,11 @@ pub struct UserResponse {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct MessageResponse {
+    pub message: String,
+}
+
 #[async_trait::async_trait]
 pub trait UserRepository: Send + Sync {
     async fn create(&self, user: &CreateUser, password_hash: &str) -> Result<User, sqlx::Error>;

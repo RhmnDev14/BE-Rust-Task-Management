@@ -4,6 +4,7 @@ use crate::{
     application::task_service::TaskService,
     domain::error::ErrorResponse,
     domain::task::{CreateTask, TaskError, TaskResponse, UpdateTask},
+    domain::user::MessageResponse,
 };
 use axum::{
     extract::{Path, State},
@@ -30,14 +31,14 @@ use uuid::Uuid;
     security(("bearer_auth" = [])),
     tag = "tasks"
 )]
-#[tracing::instrument(skip(task_service, _auth, payload))]
+#[tracing::instrument(skip(task_service, auth, payload))]
 pub async fn create_task(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(task_service): State<Arc<TaskService>>,
     Json(payload): Json<CreateTask>,
 ) -> Result<impl IntoResponse, TaskAppError> {
     tracing::info!("Creating task: {}", payload.task_name);
-    let task = task_service.create_task(payload).await.map_err(|e| {
+    let task = task_service.create_task(payload, auth.user_id).await.map_err(|e| {
         tracing::error!("Create task failed: {:?}", e);
         TaskAppError::from(e)
     })?;
@@ -105,13 +106,10 @@ pub async fn get_task_by_id(
 
 // ─── Get Tasks By User ───────────────────────────────────────────────────────
 
-/// Mendapatkan semua tugas milik user tertentu
+/// Mendapatkan semua tugas milik user yang sedang login
 #[utoipa::path(
     get,
-    path = "/api/tasks/user/{id_user}",
-    params(
-        ("id_user" = Uuid, Path, description = "User ID untuk filter task")
-    ),
+    path = "/api/tasks/my",
     responses(
         (status = 200, description = "Daftar task milik user", body = Vec<TaskResponse>),
         (status = 401, description = "Unauthorized - token tidak valid", body = ErrorResponse),
@@ -121,12 +119,11 @@ pub async fn get_task_by_id(
     tag = "tasks"
 )]
 pub async fn get_tasks_by_user(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(task_service): State<Arc<TaskService>>,
-    Path(id_user): Path<Uuid>,
 ) -> Result<impl IntoResponse, TaskAppError> {
     let tasks = task_service
-        .get_tasks_by_user(id_user)
+        .get_tasks_by_user(auth.user_id)
         .await
         .map_err(TaskAppError::from)?;
     Ok(Json(tasks))
@@ -176,7 +173,7 @@ pub async fn update_task(
         ("id" = Uuid, Path, description = "Task ID")
     ),
     responses(
-        (status = 200, description = "Task berhasil dihapus"),
+        (status = 200, description = "Task berhasil dihapus", body = MessageResponse),
         (status = 401, description = "Unauthorized - token tidak valid", body = ErrorResponse),
         (status = 404, description = "Task tidak ditemukan", body = ErrorResponse),
         (status = 500, description = "Internal server error", body = ErrorResponse)
@@ -195,7 +192,7 @@ pub async fn delete_task(
         tracing::error!("Delete task ID failed: {:?}", e);
         TaskAppError::from(e)
     })?;
-    Ok(Json(json!({ "message": "Task berhasil dihapus" })))
+    Ok(Json(MessageResponse { message: "Task berhasil dihapus".to_string() }))
 }
 
 // ─── Error Handling ──────────────────────────────────────────────────────────

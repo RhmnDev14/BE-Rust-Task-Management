@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
-    sub: String,
+    id: String,
     exp: usize,
     iat: usize,
 }
@@ -93,7 +93,7 @@ impl UserService {
             .timestamp();
 
         let claims = Claims {
-            sub: user.id.to_string(),
+            id: user.id.to_string(),
             exp: expiration as usize,
             iat: Utc::now().timestamp() as usize,
         };

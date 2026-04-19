@@ -3,10 +3,10 @@ use crate::application::task_service::TaskService;
 use crate::application::user_service::UserService;
 use crate::application::group_service::GroupService;
 use crate::application::master_service::MasterService;
-use crate::infrastructure::repositories::SqlxUserRepository;
-use crate::infrastructure::task_repository::SqlxTaskRepository;
-use crate::infrastructure::group_repository::SqlxGroupRepository;
-use crate::infrastructure::master_repository::SqlxMasterRepository;
+use crate::repository::user_repository::SqlxUserRepository;
+use crate::repository::task_repository::SqlxTaskRepository;
+use crate::repository::group_repository::SqlxGroupRepository;
+use crate::repository::master_repository::SqlxMasterRepository;
 use dotenvy::dotenv;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::ConnectOptions;
@@ -20,6 +20,7 @@ mod api;
 mod application;
 mod domain;
 mod infrastructure;
+mod repository;
 
 #[tokio::main]
 async fn main() {

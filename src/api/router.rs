@@ -8,12 +8,15 @@ use crate::api::group_handlers::{
     self as gh, create_group, delete_group, get_all_groups, get_group_by_id, get_group_members,
     update_group,
 };
+use crate::api::master_handlers::{self as mh, get_progress_options};
 use crate::application::task_service::TaskService;
 use crate::application::user_service::UserService;
 use crate::application::group_service::GroupService;
+use crate::application::master_service::MasterService;
 use crate::infrastructure::s3::S3Client;
 use crate::domain::task::{CreateTask, PaginatedResponse, PaginationParams, TaskResponse, UpdateTask};
 use crate::domain::group::{CreateGroup, GroupMember, GroupResponse, UpdateGroup};
+use crate::domain::master::ProgressOption;
 use crate::domain::user::{ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UserOption, UserResponse};
 use crate::domain::error::ErrorResponse;
 use axum::{
@@ -71,6 +74,7 @@ impl Modify for BearerSecurityAddon {
         gh::get_group_members,
         gh::update_group,
         gh::delete_group,
+        mh::get_progress_options,
         s3h::get_presigned_url,
     ),
     components(
@@ -78,6 +82,7 @@ impl Modify for BearerSecurityAddon {
             CreateUser, LoginUser, UpdateUser, ChangePassword, UserResponse, UserOption, MessageResponse,
             CreateTask, UpdateTask, TaskResponse, PaginationParams, PaginatedResponse<TaskResponse>,
             CreateGroup, UpdateGroup, GroupResponse, GroupMember, PaginatedResponse<GroupResponse>,
+            ProgressOption,
             ErrorResponse,
             PresignedUrlRequest, PresignedUrlResponse
         )
@@ -88,6 +93,7 @@ impl Modify for BearerSecurityAddon {
         (name = "users", description = "Layanan data user"),
         (name = "tasks", description = "Layanan manajemen tugas (Memerlukan JWT Token)"),
         (name = "groups", description = "Layanan manajemen grup (Memerlukan JWT Token)"),
+        (name = "master", description = "Layanan data master"),
         (name = "s3", description = "Layanan S3/MinIO untuk file storage")
     ),
     info(
@@ -106,6 +112,7 @@ pub fn create_router(
     user_service: Arc<UserService>, 
     task_service: Arc<TaskService>,
     group_service: Arc<GroupService>,
+    master_service: Arc<MasterService>,
     s3_client: Arc<S3Client>,
 ) -> Router {
     let task_routes = Router::new()
@@ -127,6 +134,10 @@ pub fn create_router(
         .route("/:id/members", get(get_group_members))
         .with_state(group_service);
 
+    let master_routes = Router::new()
+        .route("/progress", get(get_progress_options))
+        .with_state(master_service);
+
     let s3_routes = Router::new()
         .route("/presigned-url", post(get_presigned_url))
         .with_state(s3_client);
@@ -141,6 +152,7 @@ pub fn create_router(
         .with_state(user_service)
         .nest("/api/tasks", task_routes)
         .nest("/api/groups", group_routes)
+        .nest("/api/master", master_routes)
         .nest("/api/s3", s3_routes)
         .layer(TraceLayer::new_for_http())
 }

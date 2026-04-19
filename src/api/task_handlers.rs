@@ -3,7 +3,7 @@ use crate::{
     api::middleware::AuthUser,
     application::task_service::TaskService,
     domain::error::ErrorResponse,
-    domain::task::{CreateTask, TaskError, TaskResponse, UpdateTask},
+    domain::task::{CreateTask, PaginatedResponse, PaginationParams, TaskError, TaskResponse, UpdateTask},
     domain::user::MessageResponse,
 };
 use axum::{
@@ -57,21 +57,25 @@ pub async fn create_task(
 #[utoipa::path(
     get,
     path = "/api/tasks",
+    params(
+        PaginationParams
+    ),
     responses(
-        (status = 200, description = "Daftar semua task", body = Vec<TaskResponse>),
+        (status = 200, description = "Daftar semua task dengan paginasi", body = PaginatedResponse<TaskResponse>),
         (status = 401, description = "Unauthorized - token tidak valid", body = ErrorResponse),
         (status = 500, description = "Internal server error", body = ErrorResponse)
     ),
     security(("bearer_auth" = [])),
     tag = "tasks"
 )]
-#[tracing::instrument(skip(task_service, _auth))]
+#[tracing::instrument(skip(task_service, _auth, pagination))]
 pub async fn get_all_tasks(
     _auth: AuthUser,
     State(task_service): State<Arc<TaskService>>,
+    Query(pagination): Query<PaginationParams>,
 ) -> Result<impl IntoResponse, TaskAppError> {
-    tracing::info!("Retrieving all tasks");
-    let tasks = task_service.get_all_tasks().await.map_err(|e| {
+    tracing::info!("Retrieving all tasks with pagination: {:?}", pagination);
+    let tasks = task_service.get_all_tasks(pagination).await.map_err(|e| {
         tracing::error!("Retrieve all tasks failed: {:?}", e);
         TaskAppError::from(e)
     })?;
@@ -116,8 +120,11 @@ pub async fn get_task_by_id(
 #[utoipa::path(
     get,
     path = "/api/tasks/my",
+    params(
+        PaginationParams
+    ),
     responses(
-        (status = 200, description = "Daftar task milik user", body = Vec<TaskResponse>),
+        (status = 200, description = "Daftar task milik user dengan paginasi", body = PaginatedResponse<TaskResponse>),
         (status = 401, description = "Unauthorized - token tidak valid", body = ErrorResponse),
         (status = 500, description = "Internal server error", body = ErrorResponse)
     ),
@@ -127,9 +134,10 @@ pub async fn get_task_by_id(
 pub async fn get_tasks_by_user(
     auth: AuthUser,
     State(task_service): State<Arc<TaskService>>,
+    Query(pagination): Query<PaginationParams>,
 ) -> Result<impl IntoResponse, TaskAppError> {
     let tasks = task_service
-        .get_tasks_by_user(auth.user_id)
+        .get_tasks_by_user(auth.user_id, pagination)
         .await
         .map_err(TaskAppError::from)?;
     Ok(Json(tasks))
@@ -142,10 +150,11 @@ pub async fn get_tasks_by_user(
     get,
     path = "/api/tasks/search",
     params(
-        ("q" = String, Query, description = "Query pencarian")
+        ("q" = String, Query, description = "Query pencarian"),
+        PaginationParams
     ),
     responses(
-        (status = 200, description = "Daftar task hasil pencarian", body = Vec<TaskResponse>),
+        (status = 200, description = "Daftar task hasil pencarian dengan paginasi", body = PaginatedResponse<TaskResponse>),
         (status = 401, description = "Unauthorized - token tidak valid", body = ErrorResponse),
         (status = 500, description = "Internal server error", body = ErrorResponse)
     ),
@@ -155,11 +164,12 @@ pub async fn get_tasks_by_user(
 pub async fn search_tasks(
     auth: AuthUser,
     State(task_service): State<Arc<TaskService>>,
-    Query(params): Query<SearchParams>,
+    Query(search_params): Query<SearchParams>,
+    Query(pagination): Query<PaginationParams>,
 ) -> Result<impl IntoResponse, TaskAppError> {
-    tracing::info!("Searching tasks with query: {}", params.q);
+    tracing::info!("Searching tasks with query: {} and pagination: {:?}", search_params.q, pagination);
     let tasks = task_service
-        .search_tasks(auth.user_id, &params.q)
+        .search_tasks(auth.user_id, &search_params.q, pagination)
         .await
         .map_err(TaskAppError::from)?;
     Ok(Json(tasks))

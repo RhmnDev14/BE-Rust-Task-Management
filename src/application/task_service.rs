@@ -1,4 +1,4 @@
-use crate::domain::task::{CreateTask, TaskError, TaskRepository, TaskResponse, UpdateTask};
+use crate::domain::task::{CreateTask, PaginatedResponse, PaginationParams, TaskError, TaskRepository, TaskResponse, UpdateTask};
 use uuid::Uuid;
 
 pub struct TaskService {
@@ -23,10 +23,17 @@ impl TaskService {
         })
     }
 
-    #[tracing::instrument(skip(self))]
-    pub async fn get_all_tasks(&self) -> Result<Vec<TaskResponse>, TaskError> {
-        let tasks = self.task_repository.find_all().await?;
-        let responses = tasks
+    #[tracing::instrument(skip(self, pagination))]
+    pub async fn get_all_tasks(
+        &self,
+        pagination: PaginationParams,
+    ) -> Result<PaginatedResponse<TaskResponse>, TaskError> {
+        let (tasks, total_items) = self.task_repository.find_all(&pagination).await?;
+        let page = pagination.page.unwrap_or(1);
+        let limit = pagination.limit.unwrap_or(10);
+        let total_pages = (total_items as f64 / limit as f64).ceil() as i64;
+
+        let items = tasks
             .into_iter()
             .map(|task| TaskResponse {
                 id: task.id,
@@ -37,7 +44,14 @@ impl TaskService {
                 updated_at: task.updated_at,
             })
             .collect();
-        Ok(responses)
+
+        Ok(PaginatedResponse {
+            items,
+            total_items,
+            page,
+            limit,
+            total_pages,
+        })
     }
 
     #[tracing::instrument(skip(self))]
@@ -57,10 +71,18 @@ impl TaskService {
         })
     }
 
-    #[tracing::instrument(skip(self))]
-    pub async fn get_tasks_by_user(&self, id_user: Uuid) -> Result<Vec<TaskResponse>, TaskError> {
-        let tasks = self.task_repository.find_by_user_id(id_user).await?;
-        let responses = tasks
+    #[tracing::instrument(skip(self, pagination))]
+    pub async fn get_tasks_by_user(
+        &self,
+        id_user: Uuid,
+        pagination: PaginationParams,
+    ) -> Result<PaginatedResponse<TaskResponse>, TaskError> {
+        let (tasks, total_items) = self.task_repository.find_by_user_id(id_user, &pagination).await?;
+        let page = pagination.page.unwrap_or(1);
+        let limit = pagination.limit.unwrap_or(10);
+        let total_pages = (total_items as f64 / limit as f64).ceil() as i64;
+
+        let items = tasks
             .into_iter()
             .map(|task| TaskResponse {
                 id: task.id,
@@ -71,13 +93,29 @@ impl TaskService {
                 updated_at: task.updated_at,
             })
             .collect();
-        Ok(responses)
+
+        Ok(PaginatedResponse {
+            items,
+            total_items,
+            page,
+            limit,
+            total_pages,
+        })
     }
 
-    #[tracing::instrument(skip(self))]
-    pub async fn search_tasks(&self, id_user: Uuid, query: &str) -> Result<Vec<TaskResponse>, TaskError> {
-        let tasks = self.task_repository.search(id_user, query).await?;
-        let responses = tasks
+    #[tracing::instrument(skip(self, pagination))]
+    pub async fn search_tasks(
+        &self,
+        id_user: Uuid,
+        query: &str,
+        pagination: PaginationParams,
+    ) -> Result<PaginatedResponse<TaskResponse>, TaskError> {
+        let (tasks, total_items) = self.task_repository.search(id_user, query, &pagination).await?;
+        let page = pagination.page.unwrap_or(1);
+        let limit = pagination.limit.unwrap_or(10);
+        let total_pages = (total_items as f64 / limit as f64).ceil() as i64;
+
+        let items = tasks
             .into_iter()
             .map(|task| TaskResponse {
                 id: task.id,
@@ -88,7 +126,14 @@ impl TaskService {
                 updated_at: task.updated_at,
             })
             .collect();
-        Ok(responses)
+
+        Ok(PaginatedResponse {
+            items,
+            total_items,
+            page,
+            limit,
+            total_pages,
+        })
     }
 
     #[tracing::instrument(skip(self, update_task))]

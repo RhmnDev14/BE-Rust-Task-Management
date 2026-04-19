@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
@@ -36,13 +36,46 @@ pub struct TaskResponse {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema, IntoParams)]
+pub struct PaginationParams {
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct PaginatedResponse<T> {
+    pub items: Vec<T>,
+    pub total_items: i64,
+    pub page: i64,
+    pub limit: i64,
+    pub total_pages: i64,
+}
+
+impl Default for PaginationParams {
+    fn default() -> Self {
+        Self {
+            page: Some(1),
+            limit: Some(10),
+        }
+    }
+}
+
 #[async_trait::async_trait]
 pub trait TaskRepository: Send + Sync {
     async fn create(&self, task: &CreateTask, id_user: Uuid) -> Result<Task, sqlx::Error>;
-    async fn find_all(&self) -> Result<Vec<Task>, sqlx::Error>;
+    async fn find_all(&self, pagination: &PaginationParams) -> Result<(Vec<Task>, i64), sqlx::Error>;
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Task>, sqlx::Error>;
-    async fn find_by_user_id(&self, id_user: Uuid) -> Result<Vec<Task>, sqlx::Error>;
-    async fn search(&self, id_user: Uuid, query: &str) -> Result<Vec<Task>, sqlx::Error>;
+    async fn find_by_user_id(
+        &self,
+        id_user: Uuid,
+        pagination: &PaginationParams,
+    ) -> Result<(Vec<Task>, i64), sqlx::Error>;
+    async fn search(
+        &self,
+        id_user: Uuid,
+        query: &str,
+        pagination: &PaginationParams,
+    ) -> Result<(Vec<Task>, i64), sqlx::Error>;
     async fn update(&self, id: Uuid, task: &UpdateTask) -> Result<Option<Task>, sqlx::Error>;
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
 }

@@ -1,4 +1,4 @@
-use crate::domain::task::{CreateTask, Task, TaskRepository, UpdateTask};
+use crate::domain::task::{CreateTask, PaginationParams, Task, TaskRepository, UpdateTask};
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -33,19 +33,33 @@ impl TaskRepository for SqlxTaskRepository {
         Ok(task)
     }
 
-    async fn find_all(&self) -> Result<Vec<Task>, sqlx::Error> {
+    async fn find_all(&self, pagination: &PaginationParams) -> Result<(Vec<Task>, i64), sqlx::Error> {
+        let limit = pagination.limit.unwrap_or(10);
+        let offset = (pagination.page.unwrap_or(1) - 1) * limit;
+
+        let total_items = sqlx::query!(
+            r#"SELECT COUNT(*) as count FROM tasks"#
+        )
+        .fetch_one(&self.pool)
+        .await?
+        .count
+        .unwrap_or(0);
+
         let tasks = sqlx::query_as!(
             Task,
             r#"
             SELECT id, task_name, description, id_user, created_at, updated_at
             FROM tasks
             ORDER BY created_at DESC
-            "#
+            LIMIT $1 OFFSET $2
+            "#,
+            limit,
+            offset
         )
         .fetch_all(&self.pool)
         .await?;
 
-        Ok(tasks)
+        Ok((tasks, total_items))
     }
 
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Task>, sqlx::Error> {
@@ -64,7 +78,23 @@ impl TaskRepository for SqlxTaskRepository {
         Ok(task)
     }
 
-    async fn find_by_user_id(&self, id_user: Uuid) -> Result<Vec<Task>, sqlx::Error> {
+    async fn find_by_user_id(
+        &self,
+        id_user: Uuid,
+        pagination: &PaginationParams,
+    ) -> Result<(Vec<Task>, i64), sqlx::Error> {
+        let limit = pagination.limit.unwrap_or(10);
+        let offset = (pagination.page.unwrap_or(1) - 1) * limit;
+
+        let total_items = sqlx::query!(
+            r#"SELECT COUNT(*) as count FROM tasks WHERE id_user = $1"#,
+            id_user
+        )
+        .fetch_one(&self.pool)
+        .await?
+        .count
+        .unwrap_or(0);
+
         let tasks = sqlx::query_as!(
             Task,
             r#"
@@ -72,17 +102,41 @@ impl TaskRepository for SqlxTaskRepository {
             FROM tasks
             WHERE id_user = $1
             ORDER BY created_at DESC
+            LIMIT $2 OFFSET $3
             "#,
-            id_user
+            id_user,
+            limit,
+            offset
         )
         .fetch_all(&self.pool)
         .await?;
 
-        Ok(tasks)
+        Ok((tasks, total_items))
     }
 
-    async fn search(&self, id_user: Uuid, query: &str) -> Result<Vec<Task>, sqlx::Error> {
+    async fn search(
+        &self,
+        id_user: Uuid,
+        query: &str,
+        pagination: &PaginationParams,
+    ) -> Result<(Vec<Task>, i64), sqlx::Error> {
+        let limit = pagination.limit.unwrap_or(10);
+        let offset = (pagination.page.unwrap_or(1) - 1) * limit;
         let search_pattern = format!("%{}%", query);
+
+        let total_items = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as count FROM tasks
+            WHERE id_user = $1 AND (task_name ILIKE $2 OR description ILIKE $2)
+            "#,
+            id_user,
+            search_pattern
+        )
+        .fetch_one(&self.pool)
+        .await?
+        .count
+        .unwrap_or(0);
+
         let tasks = sqlx::query_as!(
             Task,
             r#"
@@ -90,14 +144,17 @@ impl TaskRepository for SqlxTaskRepository {
             FROM tasks
             WHERE id_user = $1 AND (task_name ILIKE $2 OR description ILIKE $2)
             ORDER BY created_at DESC
+            LIMIT $3 OFFSET $4
             "#,
             id_user,
-            search_pattern
+            search_pattern,
+            limit,
+            offset
         )
         .fetch_all(&self.pool)
         .await?;
 
-        Ok(tasks)
+        Ok((tasks, total_items))
     }
 
     async fn update(&self, id: Uuid, task: &UpdateTask) -> Result<Option<Task>, sqlx::Error> {

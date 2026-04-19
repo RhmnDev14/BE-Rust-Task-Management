@@ -2,12 +2,12 @@ use crate::api::handlers::{self, login_user, register_user};
 use crate::api::s3_handlers::{self as s3h, get_presigned_url, PresignedUrlRequest, PresignedUrlResponse};
 use crate::api::task_handlers::{
     self as th, create_task, delete_task, get_all_tasks, get_task_by_id, get_tasks_by_user,
-    search_tasks, update_task,
+    update_task,
 };
 use crate::application::task_service::TaskService;
 use crate::application::user_service::UserService;
 use crate::infrastructure::s3::S3Client;
-use crate::domain::task::{CreateTask, TaskResponse, UpdateTask};
+use crate::domain::task::{CreateTask, PaginatedResponse, PaginationParams, TaskResponse, UpdateTask};
 use crate::domain::user::{ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UserResponse};
 use crate::domain::error::ErrorResponse;
 use axum::{
@@ -63,7 +63,7 @@ impl Modify for BearerSecurityAddon {
     components(
         schemas(
             CreateUser, LoginUser, UpdateUser, ChangePassword, UserResponse, MessageResponse,
-            CreateTask, UpdateTask, TaskResponse, 
+            CreateTask, UpdateTask, TaskResponse, PaginationParams, PaginatedResponse<TaskResponse>,
             ErrorResponse,
             PresignedUrlRequest, PresignedUrlResponse
         )

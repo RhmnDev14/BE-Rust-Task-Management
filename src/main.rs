@@ -1,8 +1,10 @@
 use crate::api::router::create_router;
 use crate::application::task_service::TaskService;
 use crate::application::user_service::UserService;
+use crate::application::group_service::GroupService;
 use crate::infrastructure::repositories::SqlxUserRepository;
 use crate::infrastructure::task_repository::SqlxTaskRepository;
+use crate::infrastructure::group_repository::SqlxGroupRepository;
 use dotenvy::dotenv;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::ConnectOptions;
@@ -53,13 +55,17 @@ async fn main() {
     let user_service = Arc::new(UserService::new(user_repository, jwt_secret));
 
     // Task service
-    let task_repository = Box::new(SqlxTaskRepository::new(pool));
+    let task_repository = Box::new(SqlxTaskRepository::new(pool.clone()));
     let task_service = Arc::new(TaskService::new(task_repository));
+
+    // Group service
+    let group_repository = Box::new(SqlxGroupRepository::new(pool));
+    let group_service = Arc::new(GroupService::new(group_repository));
 
     // S3 client
     let s3_client = Arc::new(crate::infrastructure::s3::S3Client::new().await);
 
-    let app = create_router(user_service, task_service, s3_client);
+    let app = create_router(user_service, task_service, group_service, s3_client);
 
     let host = env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = env::var("PORT").unwrap_or_else(|_| "3000".to_string());

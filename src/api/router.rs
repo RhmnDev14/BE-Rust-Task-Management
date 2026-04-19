@@ -4,10 +4,15 @@ use crate::api::task_handlers::{
     self as th, create_task, delete_task, get_all_tasks, get_task_by_id, get_tasks_by_user,
     update_task,
 };
+use crate::api::group_handlers::{
+    self as gh, create_group, delete_group, get_all_groups, get_group_by_id, update_group,
+};
 use crate::application::task_service::TaskService;
 use crate::application::user_service::UserService;
+use crate::application::group_service::GroupService;
 use crate::infrastructure::s3::S3Client;
 use crate::domain::task::{CreateTask, PaginatedResponse, PaginationParams, TaskResponse, UpdateTask};
+use crate::domain::group::{CreateGroup, GroupResponse, UpdateGroup};
 use crate::domain::user::{ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UserResponse};
 use crate::domain::error::ErrorResponse;
 use axum::{
@@ -58,12 +63,18 @@ impl Modify for BearerSecurityAddon {
         th::search_tasks,
         th::update_task,
         th::delete_task,
+        gh::create_group,
+        gh::get_all_groups,
+        gh::get_group_by_id,
+        gh::update_group,
+        gh::delete_group,
         s3h::get_presigned_url,
     ),
     components(
         schemas(
             CreateUser, LoginUser, UpdateUser, ChangePassword, UserResponse, MessageResponse,
             CreateTask, UpdateTask, TaskResponse, PaginationParams, PaginatedResponse<TaskResponse>,
+            CreateGroup, UpdateGroup, GroupResponse, PaginatedResponse<GroupResponse>,
             ErrorResponse,
             PresignedUrlRequest, PresignedUrlResponse
         )
@@ -72,6 +83,7 @@ impl Modify for BearerSecurityAddon {
     tags(
         (name = "auth", description = "Layanan autentikasi dan registrasi user"),
         (name = "tasks", description = "Layanan manajemen tugas (Memerlukan JWT Token)"),
+        (name = "groups", description = "Layanan manajemen grup (Memerlukan JWT Token)"),
         (name = "s3", description = "Layanan S3/MinIO untuk file storage")
     ),
     info(
@@ -89,6 +101,7 @@ pub struct ApiDoc;
 pub fn create_router(
     user_service: Arc<UserService>, 
     task_service: Arc<TaskService>,
+    group_service: Arc<GroupService>,
     s3_client: Arc<S3Client>,
 ) -> Router {
     let task_routes = Router::new()
@@ -100,6 +113,14 @@ pub fn create_router(
         .route("/my", get(get_tasks_by_user))
         .route("/search", get(th::search_tasks))
         .with_state(task_service);
+
+    let group_routes = Router::new()
+        .route("/", post(create_group).get(get_all_groups))
+        .route(
+            "/:id",
+            get(get_group_by_id).put(update_group).delete(delete_group),
+        )
+        .with_state(group_service);
 
     let s3_routes = Router::new()
         .route("/presigned-url", post(get_presigned_url))
@@ -113,6 +134,7 @@ pub fn create_router(
         .route("/api/auth/change-password", put(handlers::change_password))
         .with_state(user_service)
         .nest("/api/tasks", task_routes)
+        .nest("/api/groups", group_routes)
         .nest("/api/s3", s3_routes)
         .layer(TraceLayer::new_for_http())
 }

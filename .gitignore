@@ -14,3 +14,7 @@
 # OS
 .DS_Store
 Thumbs.db
+
+# Stress test results
+/stress_test_results
+stress_test_output.log

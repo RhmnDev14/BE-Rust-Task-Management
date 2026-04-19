@@ -3,7 +3,7 @@ use crate::{
     api::middleware::AuthUser,
     application::group_service::GroupService,
     domain::error::ErrorResponse,
-    domain::group::{CreateGroup, GroupError, GroupResponse, UpdateGroup},
+    domain::group::{CreateGroup, GroupError, GroupMember, GroupResponse, UpdateGroup},
     domain::task::{PaginatedResponse, PaginationParams},
     domain::user::MessageResponse,
 };
@@ -107,6 +107,38 @@ pub async fn get_group_by_id(
         GroupAppError::from(e)
     })?;
     Ok(Json(group))
+}
+
+// ─── Get Group Members ───────────────────────────────────────────────────────
+
+/// Mendapatkan daftar anggota grup
+#[utoipa::path(
+    get,
+    path = "/api/groups/{id}/members",
+    params(
+        ("id" = Uuid, Path, description = "Group ID")
+    ),
+    responses(
+        (status = 200, description = "Daftar anggota grup", body = Vec<GroupMember>),
+        (status = 401, description = "Unauthorized - token tidak valid", body = ErrorResponse),
+        (status = 404, description = "Group tidak ditemukan", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(("bearer_auth" = [])),
+    tag = "groups"
+)]
+#[tracing::instrument(skip(group_service, _auth))]
+pub async fn get_group_members(
+    _auth: AuthUser,
+    State(group_service): State<Arc<GroupService>>,
+    Path(id): Path<Uuid>,
+) -> Result<impl IntoResponse, GroupAppError> {
+    tracing::info!("Retrieving members for group ID: {}", id);
+    let members = group_service.get_group_members(id).await.map_err(|e| {
+        tracing::error!("Retrieve group members failed: {:?}", e);
+        GroupAppError::from(e)
+    })?;
+    Ok(Json(members))
 }
 
 // ─── Update Group ────────────────────────────────────────────────────────────

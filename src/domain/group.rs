@@ -35,11 +35,18 @@ pub struct GroupResponse {
     pub updated_by: Uuid,
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct GroupMember {
+    pub user_id: Uuid,
+    pub username: String,
+}
+
 #[async_trait::async_trait]
 pub trait GroupRepository: Send + Sync {
     async fn create(&self, group: &CreateGroup, user_id: Uuid) -> Result<Group, sqlx::Error>;
     async fn find_all(&self, pagination: &PaginationParams) -> Result<(Vec<Group>, i64), sqlx::Error>;
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Group>, sqlx::Error>;
+    async fn find_users_by_group_id(&self, group_id: Uuid) -> Result<Vec<GroupMember>, sqlx::Error>;
     async fn update(&self, id: Uuid, group: &UpdateGroup, user_id: Uuid) -> Result<Option<Group>, sqlx::Error>;
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
 }

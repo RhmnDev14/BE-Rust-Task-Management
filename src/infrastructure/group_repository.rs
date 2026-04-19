@@ -1,4 +1,4 @@
-use crate::domain::group::{CreateGroup, Group, GroupRepository, UpdateGroup};
+use crate::domain::group::{CreateGroup, Group, GroupMember, GroupRepository, UpdateGroup};
 use crate::domain::task::PaginationParams;
 use async_trait::async_trait;
 use sqlx::PgPool;
@@ -77,6 +77,23 @@ impl GroupRepository for SqlxGroupRepository {
         .await?;
 
         Ok(group)
+    }
+
+    async fn find_users_by_group_id(&self, group_id: Uuid) -> Result<Vec<GroupMember>, sqlx::Error> {
+        let members = sqlx::query_as!(
+            GroupMember,
+            r#"
+            SELECT u.id as "user_id!", u.username as "username!"
+            FROM users u
+            JOIN user_groups ug ON ug.user_id = u.id
+            WHERE ug.group_id = $1
+            "#,
+            group_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(members)
     }
 
     async fn update(&self, id: Uuid, group: &UpdateGroup, user_id: Uuid) -> Result<Option<Group>, sqlx::Error> {

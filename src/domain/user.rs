@@ -51,6 +51,12 @@ pub struct UserResponse {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema, FromRow)]
+pub struct UserOption {
+    pub id: Uuid,
+    pub username: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct MessageResponse {
     pub message: String,
@@ -62,6 +68,7 @@ pub trait UserRepository: Send + Sync {
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, sqlx::Error>;
     async fn find_by_username(&self, username: &str) -> Result<Option<User>, sqlx::Error>;
     async fn find_by_id(&self, id: &Uuid) -> Result<Option<User>, sqlx::Error>;
+    async fn find_all_options(&self) -> Result<Vec<UserOption>, sqlx::Error>;
     async fn update(&self, id: &Uuid, user: &UpdateUser) -> Result<User, sqlx::Error>;
     async fn update_password(&self, id: &Uuid, password_hash: &str) -> Result<(), sqlx::Error>;
 }

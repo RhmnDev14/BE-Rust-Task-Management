@@ -1,4 +1,4 @@
-use crate::domain::group::{CreateGroup, GroupError, GroupRepository, GroupResponse, UpdateGroup};
+use crate::domain::group::{CreateGroup, GroupError, GroupMember, GroupRepository, GroupResponse, UpdateGroup};
 use crate::domain::task::{PaginatedResponse, PaginationParams};
 use uuid::Uuid;
 
@@ -70,6 +70,12 @@ impl GroupService {
             updated_at: group.updated_at,
             updated_by: group.updated_by,
         })
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn get_group_members(&self, group_id: Uuid) -> Result<Vec<GroupMember>, GroupError> {
+        let members = self.group_repository.find_users_by_group_id(group_id).await?;
+        Ok(members)
     }
 
     #[tracing::instrument(skip(self, update_group))]

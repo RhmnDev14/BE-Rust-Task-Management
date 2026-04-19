@@ -1,19 +1,20 @@
-use crate::api::handlers::{self, login_user, register_user};
+use crate::api::handlers::{self, login_user, register_user, get_user_options};
 use crate::api::s3_handlers::{self as s3h, get_presigned_url, PresignedUrlRequest, PresignedUrlResponse};
 use crate::api::task_handlers::{
     self as th, create_task, delete_task, get_all_tasks, get_task_by_id, get_tasks_by_user,
     update_task,
 };
 use crate::api::group_handlers::{
-    self as gh, create_group, delete_group, get_all_groups, get_group_by_id, update_group,
+    self as gh, create_group, delete_group, get_all_groups, get_group_by_id, get_group_members,
+    update_group,
 };
 use crate::application::task_service::TaskService;
 use crate::application::user_service::UserService;
 use crate::application::group_service::GroupService;
 use crate::infrastructure::s3::S3Client;
 use crate::domain::task::{CreateTask, PaginatedResponse, PaginationParams, TaskResponse, UpdateTask};
-use crate::domain::group::{CreateGroup, GroupResponse, UpdateGroup};
-use crate::domain::user::{ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UserResponse};
+use crate::domain::group::{CreateGroup, GroupMember, GroupResponse, UpdateGroup};
+use crate::domain::user::{ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UserOption, UserResponse};
 use crate::domain::error::ErrorResponse;
 use axum::{
     routing::{get, post, put},
@@ -56,6 +57,7 @@ impl Modify for BearerSecurityAddon {
         handlers::get_me,
         handlers::update_me,
         handlers::change_password,
+        handlers::get_user_options,
         th::create_task,
         th::get_all_tasks,
         th::get_task_by_id,
@@ -66,15 +68,16 @@ impl Modify for BearerSecurityAddon {
         gh::create_group,
         gh::get_all_groups,
         gh::get_group_by_id,
+        gh::get_group_members,
         gh::update_group,
         gh::delete_group,
         s3h::get_presigned_url,
     ),
     components(
         schemas(
-            CreateUser, LoginUser, UpdateUser, ChangePassword, UserResponse, MessageResponse,
+            CreateUser, LoginUser, UpdateUser, ChangePassword, UserResponse, UserOption, MessageResponse,
             CreateTask, UpdateTask, TaskResponse, PaginationParams, PaginatedResponse<TaskResponse>,
-            CreateGroup, UpdateGroup, GroupResponse, PaginatedResponse<GroupResponse>,
+            CreateGroup, UpdateGroup, GroupResponse, GroupMember, PaginatedResponse<GroupResponse>,
             ErrorResponse,
             PresignedUrlRequest, PresignedUrlResponse
         )
@@ -82,6 +85,7 @@ impl Modify for BearerSecurityAddon {
     modifiers(&BearerSecurityAddon),
     tags(
         (name = "auth", description = "Layanan autentikasi dan registrasi user"),
+        (name = "users", description = "Layanan data user"),
         (name = "tasks", description = "Layanan manajemen tugas (Memerlukan JWT Token)"),
         (name = "groups", description = "Layanan manajemen grup (Memerlukan JWT Token)"),
         (name = "s3", description = "Layanan S3/MinIO untuk file storage")
@@ -120,6 +124,7 @@ pub fn create_router(
             "/:id",
             get(get_group_by_id).put(update_group).delete(delete_group),
         )
+        .route("/:id/members", get(get_group_members))
         .with_state(group_service);
 
     let s3_routes = Router::new()
@@ -132,6 +137,7 @@ pub fn create_router(
         .route("/api/auth/login", post(login_user))
         .route("/api/auth/me", get(handlers::get_me).put(handlers::update_me))
         .route("/api/auth/change-password", put(handlers::change_password))
+        .route("/api/users/options", get(get_user_options))
         .with_state(user_service)
         .nest("/api/tasks", task_routes)
         .nest("/api/groups", group_routes)

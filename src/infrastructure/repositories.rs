@@ -80,6 +80,19 @@ impl UserRepository for SqlxUserRepository {
         Ok(user)
     }
 
+    async fn find_all_options(&self) -> Result<Vec<crate::domain::user::UserOption>, sqlx::Error> {
+        use crate::domain::user::UserOption;
+        let options = sqlx::query_as!(
+            UserOption,
+            r#"
+            SELECT id, username FROM users
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(options)
+    }
+
     async fn update(&self, id: &uuid::Uuid, user: &UpdateUser) -> Result<User, sqlx::Error> {
         let updated_user = sqlx::query_as!(
             User,

@@ -177,4 +177,10 @@ impl UserService {
 
         Ok(())
     }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn get_user_options(&self) -> Result<Vec<crate::domain::user::UserOption>, UserError> {
+        let options = self.user_repository.find_all_options().await?;
+        Ok(options)
+    }
 }

@@ -2,7 +2,7 @@
 use crate::{
     application::user_service::UserService,
     domain::error::ErrorResponse,
-    domain::user::{ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UserError, UserResponse},
+    domain::user::{ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UserError, UserOption, UserResponse},
 };
 use axum::{
     extract::State,
@@ -157,6 +157,31 @@ pub async fn change_password(
         })?;
 
     Ok(Json(MessageResponse { message: "Password berhasil diubah".to_string() }))
+}
+
+/// Mendapatkan daftar user untuk pilihan (options)
+#[utoipa::path(
+    get,
+    path = "/api/users/options",
+    tag = "users",
+    responses(
+        (status = 200, description = "Daftar user options berhasil diambil", body = Vec<UserOption>),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(("bearer_auth" = []))
+)]
+#[tracing::instrument(skip_all)]
+pub async fn get_user_options(
+    _auth: AuthUser,
+    State(user_service): State<Arc<UserService>>,
+) -> Result<impl IntoResponse, AppError> {
+    tracing::info!("Retrieving user options");
+    let options = user_service.get_user_options().await.map_err(|e| {
+        tracing::error!("User options retrieval failed: {:?}", e);
+        AppError::from(e)
+    })?;
+
+    Ok(Json(options))
 }
 
 // Simple Error wrapper for Axum response

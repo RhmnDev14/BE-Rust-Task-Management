@@ -1,5 +1,5 @@
 use crate::api::handlers::{self, login_user, register_user, get_user_options, update_user_role};
-use crate::api::s3_handlers::{self as s3h, get_presigned_url, PresignedUrlRequest, PresignedUrlResponse};
+use crate::api::s3_handlers::{self as s3h, get_presigned_url, get_file_view_url, PresignedUrlRequest, PresignedUrlResponse};
 use crate::api::task_handlers::{
     self as th, create_task, delete_task, get_all_tasks, get_task_by_id, get_tasks_by_user,
     update_task,
@@ -79,6 +79,7 @@ impl Modify for BearerSecurityAddon {
         mh::get_role_options,
         mh::get_menu_options,
         s3h::get_presigned_url,
+        s3h::get_file_view_url,
     ),
     components(
         schemas(
@@ -145,6 +146,7 @@ pub fn create_router(
 
     let s3_routes = Router::new()
         .route("/presigned-url", post(get_presigned_url))
+        .route("/view/:file_name", get(get_file_view_url))
         .with_state(s3_client);
 
     Router::new()

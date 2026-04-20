@@ -14,13 +14,14 @@ pub struct S3Client {
 
 impl S3Client {
     pub async fn new() -> Self {
-        let mut endpoint_url = env::var("MINIO_ENDPOINT").expect("MINIO_ENDPOINT must be set").trim().to_string();
-        
+        let mut endpoint_url = env::var("MINIO_ENDPOINT")
+            .expect("MINIO_ENDPOINT must be set")
+            .trim()
+            .to_string();
+
         // Remove existing protocol if any to normalize
-        let normalized_host = endpoint_url
-            .replace("http://", "")
-            .replace("https://", "");
-            
+        let normalized_host = endpoint_url.replace("http://", "").replace("https://", "");
+
         // Enforce http:// (MinIO local is usually http)
         endpoint_url = format!("http://{}", normalized_host);
 
@@ -30,7 +31,7 @@ impl S3Client {
         let bucket = env::var("MINIO_BUCKET").expect("MINIO_BUCKET must be set");
 
         let credentials = Credentials::new(access_key, secret_key, None, None, "minio");
-        
+
         let config = Builder::new()
             .behavior_version(aws_sdk_s3::config::BehaviorVersion::latest())
             .region(Region::new("us-east-1")) // MinIO doesn't care much about region, but SDK needs it
@@ -49,7 +50,7 @@ impl S3Client {
         expires_in: u64,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         // Use a start time in the past to account for clock skew (MinIO server might be behind)
-        let clock_skew_buffer = 7200; // 2 hours
+        let clock_skew_buffer = 43200; // 12 hours buffer
         let start_time = std::time::SystemTime::now() - Duration::from_secs(clock_skew_buffer);
         let total_expires = expires_in + clock_skew_buffer;
 
@@ -67,5 +68,34 @@ impl S3Client {
             .await?;
 
         Ok(presigned_request.uri().to_string())
+    }
+
+    pub async fn generate_view_url(&self, file_name: &str) -> String {
+        let clock_skew_buffer = 43200; // 12 jam buffer
+        let start_time = std::time::SystemTime::now() - Duration::from_secs(clock_skew_buffer);
+        let expires_in = 3600 + clock_skew_buffer;
+
+        let presigning_config = PresigningConfig::builder()
+            .start_time(start_time)
+            .expires_in(Duration::from_secs(expires_in))
+            .build();
+
+        if let Ok(config) = presigning_config {
+            let presigned_request = self
+                .client
+                .get_object()
+                .bucket(&self.bucket)
+                .key(file_name)
+                .presigned(config)
+                .await
+                .ok();
+
+            match presigned_request {
+                Some(req) => req.uri().to_string(),
+                None => "".to_string(),
+            }
+        } else {
+            "".to_string()
+        }
     }
 }

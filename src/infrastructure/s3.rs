@@ -14,7 +14,17 @@ pub struct S3Client {
 
 impl S3Client {
     pub async fn new() -> Self {
-        let endpoint_url = env::var("MINIO_ENDPOINT").expect("MINIO_ENDPOINT must be set");
+        let mut endpoint_url = env::var("MINIO_ENDPOINT").expect("MINIO_ENDPOINT must be set").trim().to_string();
+        
+        // Remove existing protocol if any to normalize
+        let normalized_host = endpoint_url
+            .replace("http://", "")
+            .replace("https://", "");
+            
+        // Enforce http:// (MinIO local is usually http)
+        endpoint_url = format!("http://{}", normalized_host);
+
+        tracing::info!("Final MinIO endpoint URL: {}", endpoint_url);
         let access_key = env::var("MINIO_ACCESS_KEY").expect("MINIO_ACCESS_KEY must be set");
         let secret_key = env::var("MINIO_SECRET_KEY").expect("MINIO_SECRET_KEY must be set");
         let bucket = env::var("MINIO_BUCKET").expect("MINIO_BUCKET must be set");
@@ -28,7 +38,6 @@ impl S3Client {
             .credentials_provider(credentials)
             .force_path_style(true) // Required for MinIO
             .build();
-
         let client = Client::from_conf(config);
 
         Self { client, bucket }
@@ -39,7 +48,15 @@ impl S3Client {
         file_name: &str,
         expires_in: u64,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let presigning_config = PresigningConfig::expires_in(Duration::from_secs(expires_in))?;
+        // Use a start time in the past to account for clock skew (MinIO server might be behind)
+        let clock_skew_buffer = 7200; // 2 hours
+        let start_time = std::time::SystemTime::now() - Duration::from_secs(clock_skew_buffer);
+        let total_expires = expires_in + clock_skew_buffer;
+
+        let presigning_config = PresigningConfig::builder()
+            .start_time(start_time)
+            .expires_in(Duration::from_secs(total_expires))
+            .build()?;
 
         let presigned_request = self
             .client

@@ -1,4 +1,4 @@
-use crate::domain::master::{MasterError, MasterRepository, ProgressOption, RoleOption};
+use crate::domain::master::{MasterError, MasterRepository, MenuOption, ProgressOption, RoleOption};
 
 pub struct MasterService {
     master_repository: Box<dyn MasterRepository>,
@@ -18,6 +18,12 @@ impl MasterService {
     #[tracing::instrument(skip(self))]
     pub async fn get_role_options(&self) -> Result<Vec<RoleOption>, MasterError> {
         let options = self.master_repository.find_all_role_options().await?;
+        Ok(options)
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn get_menu_options(&self) -> Result<Vec<MenuOption>, MasterError> {
+        let options = self.master_repository.find_all_menu_options().await?;
         Ok(options)
     }
 }

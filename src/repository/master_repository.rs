@@ -1,4 +1,4 @@
-use crate::domain::master::{MasterRepository, ProgressOption, RoleOption};
+use crate::domain::master::{MasterRepository, MenuOption, ProgressOption, RoleOption};
 use async_trait::async_trait;
 use sqlx::PgPool;
 
@@ -35,6 +35,21 @@ impl MasterRepository for SqlxMasterRepository {
             r#"
             SELECT id, name
             FROM master_role
+            ORDER BY name ASC
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(options)
+    }
+
+    async fn find_all_menu_options(&self) -> Result<Vec<MenuOption>, sqlx::Error> {
+        let options = sqlx::query_as!(
+            MenuOption,
+            r#"
+            SELECT id, name
+            FROM menu
             ORDER BY name ASC
             "#
         )

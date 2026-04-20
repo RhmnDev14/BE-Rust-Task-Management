@@ -64,9 +64,7 @@ impl UserService {
             .await?;
 
         // Berikan role 'User' secara default
-        self.user_repository
-            .assign_role(&user.id, "User")
-            .await?;
+        self.user_repository.assign_role(&user.id, "User").await?;
 
         Ok(UserResponse {
             id: user.id,
@@ -167,18 +165,18 @@ impl UserService {
             .ok_or(UserError::UserNotFound)?;
 
         // Verify current password
-        let parsed_hash =
-            PasswordHash::new(&user.password_hash).map_err(|_| UserError::InvalidCredentials)?;
+        let parsed_hash = PasswordHash::new(&user.password_hash)
+            .map_err(|_| UserError::InvalidCurrentPassword)?;
 
         Argon2::default()
             .verify_password(change_password.current_password.as_bytes(), &parsed_hash)
-            .map_err(|_| UserError::InvalidCredentials)?;
+            .map_err(|_| UserError::InvalidCurrentPassword)?;
 
         // Hash new password
         let salt = SaltString::generate(&mut OsRng);
         let new_password_hash = Argon2::default()
             .hash_password(change_password.new_password.as_bytes(), &salt)
-            .map_err(|_| UserError::InvalidCredentials)?
+            .map_err(|_| UserError::InvalidCurrentPassword)?
             .to_string();
 
         self.user_repository
@@ -189,13 +187,19 @@ impl UserService {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn update_user_role(&self, user_id: uuid::Uuid, role_id: uuid::Uuid) -> Result<(), UserError> {
+    pub async fn update_user_role(
+        &self,
+        user_id: uuid::Uuid,
+        role_id: uuid::Uuid,
+    ) -> Result<(), UserError> {
         self.user_repository.update_role(&user_id, &role_id).await?;
         Ok(())
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn get_user_options(&self) -> Result<Vec<crate::domain::user::UserOption>, UserError> {
+    pub async fn get_user_options(
+        &self,
+    ) -> Result<Vec<crate::domain::user::UserOption>, UserError> {
         let options = self.user_repository.find_all_options().await?;
         Ok(options)
     }

@@ -90,6 +90,7 @@ pub enum UserError {
     UserNotFound,
     InvalidCredentials,
     TokenCreationError,
+    InvalidCurrentPassword,
 }
 
 impl From<sqlx::Error> for UserError {

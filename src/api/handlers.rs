@@ -1,4 +1,5 @@
 #![allow(unused_imports)]
+use crate::api::middleware::AuthUser;
 use crate::{
     application::user_service::UserService,
     domain::error::ErrorResponse,
@@ -15,7 +16,6 @@ use axum::{
 };
 use serde_json::json;
 use std::sync::Arc;
-use crate::api::middleware::AuthUser;
 
 /// Mendaftarkan user baru
 #[utoipa::path(
@@ -158,7 +158,9 @@ pub async fn change_password(
             AppError::from(e)
         })?;
 
-    Ok(Json(MessageResponse { message: "Password berhasil diubah".to_string() }))
+    Ok(Json(MessageResponse {
+        message: "Password berhasil diubah".to_string(),
+    }))
 }
 
 /// Mendapatkan daftar user untuk pilihan (options)
@@ -242,6 +244,9 @@ impl IntoResponse for AppError {
             }
             UserError::InvalidCredentials => {
                 (StatusCode::UNAUTHORIZED, "email or password does not match")
+            }
+            UserError::InvalidCurrentPassword => {
+                (StatusCode::UNAUTHORIZED, "current password does not match")
             }
             UserError::TokenCreationError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Token creation error")

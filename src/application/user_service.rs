@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
     id: String,
+    role_id: String,
     exp: usize,
     iat: usize,
 }
@@ -99,6 +100,7 @@ impl UserService {
 
         let claims = Claims {
             id: user.id.to_string(),
+            role_id: user.role_id.map(|id| id.to_string()).unwrap_or_default(),
             exp: expiration as usize,
             iat: Utc::now().timestamp() as usize,
         };

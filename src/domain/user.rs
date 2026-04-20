@@ -10,6 +10,7 @@ pub struct User {
     pub username: String,
     pub email: String,
     pub avatar_url: Option<String>,
+    pub role_id: Option<Uuid>,
     #[serde(skip)]
     pub password_hash: String,
     pub created_at: Option<DateTime<Utc>>,

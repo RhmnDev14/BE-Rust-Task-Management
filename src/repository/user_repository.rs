@@ -20,7 +20,7 @@ impl UserRepository for SqlxUserRepository {
             r#"
             INSERT INTO users (username, email, password_hash)
             VALUES ($1, $2, $3)
-            RETURNING id, username, email, password_hash, avatar_url, created_at, updated_at
+            RETURNING id, username, email, password_hash, avatar_url, NULL::UUID as role_id, created_at, updated_at
             "#,
             user.username,
             user.email,
@@ -36,9 +36,10 @@ impl UserRepository for SqlxUserRepository {
         let user = sqlx::query_as!(
             User,
             r#"
-            SELECT id, username, email, password_hash, avatar_url, created_at, updated_at
-            FROM users
-            WHERE email = $1
+            SELECT u.id, u.username, u.email, u.password_hash, u.avatar_url, ur.role_id, u.created_at, u.updated_at
+            FROM users u
+            LEFT JOIN user_role ur ON u.id = ur.user_id
+            WHERE u.email = $1
             "#,
             email
         )
@@ -52,9 +53,10 @@ impl UserRepository for SqlxUserRepository {
         let user = sqlx::query_as!(
             User,
             r#"
-            SELECT id, username, email, password_hash, avatar_url, created_at, updated_at
-            FROM users
-            WHERE username = $1
+            SELECT u.id, u.username, u.email, u.password_hash, u.avatar_url, ur.role_id, u.created_at, u.updated_at
+            FROM users u
+            LEFT JOIN user_role ur ON u.id = ur.user_id
+            WHERE u.username = $1
             "#,
             username
         )
@@ -68,9 +70,10 @@ impl UserRepository for SqlxUserRepository {
         let user = sqlx::query_as!(
             User,
             r#"
-            SELECT id, username, email, password_hash, avatar_url, created_at, updated_at
-            FROM users
-            WHERE id = $1
+            SELECT u.id, u.username, u.email, u.password_hash, u.avatar_url, ur.role_id, u.created_at, u.updated_at
+            FROM users u
+            LEFT JOIN user_role ur ON u.id = ur.user_id
+            WHERE u.id = $1
             "#,
             id
         )
@@ -103,7 +106,7 @@ impl UserRepository for SqlxUserRepository {
                 avatar_url = COALESCE($2, avatar_url),
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = $3
-            RETURNING id, username, email, password_hash, avatar_url, created_at, updated_at
+            RETURNING id, username, email, password_hash, avatar_url, NULL::UUID as role_id, created_at, updated_at
             "#,
             user.username,
             user.avatar_url,

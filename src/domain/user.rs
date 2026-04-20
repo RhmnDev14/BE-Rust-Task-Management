@@ -11,6 +11,7 @@ pub struct User {
     pub email: String,
     pub avatar_url: Option<String>,
     pub role_id: Option<Uuid>,
+    pub role_name: Option<String>,
     #[serde(skip)]
     pub password_hash: String,
     pub created_at: Option<DateTime<Utc>>,
@@ -48,6 +49,7 @@ pub struct UserResponse {
     pub username: String,
     pub email: String,
     pub avatar_url: Option<String>,
+    pub role_name: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }

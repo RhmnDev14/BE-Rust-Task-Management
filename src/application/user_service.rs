@@ -73,6 +73,7 @@ impl UserService {
             username: user.username,
             email: user.email,
             avatar_url: user.avatar_url,
+            role_name: user.role_name,
             created_at: user.created_at,
             updated_at: user.updated_at,
         })
@@ -128,6 +129,7 @@ impl UserService {
             username: user.username,
             email: user.email,
             avatar_url: user.avatar_url,
+            role_name: user.role_name,
             created_at: user.created_at,
             updated_at: user.updated_at,
         })
@@ -146,6 +148,7 @@ impl UserService {
             username: user.username,
             email: user.email,
             avatar_url: user.avatar_url,
+            role_name: user.role_name,
             created_at: user.created_at,
             updated_at: user.updated_at,
         })

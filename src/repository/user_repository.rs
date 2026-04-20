@@ -132,4 +132,19 @@ impl UserRepository for SqlxUserRepository {
 
         Ok(())
     }
+
+    async fn assign_role(&self, user_id: &uuid::Uuid, role_name: &str) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"
+            INSERT INTO user_role (user_id, role_id)
+            SELECT $1, id FROM master_role WHERE name = $2
+            "#,
+            user_id,
+            role_name
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
 }

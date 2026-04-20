@@ -62,6 +62,11 @@ impl UserService {
             .create(&create_user, &password_hash)
             .await?;
 
+        // Berikan role 'User' secara default
+        self.user_repository
+            .assign_role(&user.id, "User")
+            .await?;
+
         Ok(UserResponse {
             id: user.id,
             username: user.username,

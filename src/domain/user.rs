@@ -71,6 +71,7 @@ pub trait UserRepository: Send + Sync {
     async fn find_all_options(&self) -> Result<Vec<UserOption>, sqlx::Error>;
     async fn update(&self, id: &Uuid, user: &UpdateUser) -> Result<User, sqlx::Error>;
     async fn update_password(&self, id: &Uuid, password_hash: &str) -> Result<(), sqlx::Error>;
+    async fn assign_role(&self, user_id: &Uuid, role_name: &str) -> Result<(), sqlx::Error>;
 }
 
 #[derive(Debug)]

@@ -9,9 +9,16 @@ pub struct ProgressOption {
     pub name: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
+pub struct RoleOption {
+    pub id: Uuid,
+    pub name: String,
+}
+
 #[async_trait::async_trait]
 pub trait MasterRepository: Send + Sync {
     async fn find_all_progress_options(&self) -> Result<Vec<ProgressOption>, sqlx::Error>;
+    async fn find_all_role_options(&self) -> Result<Vec<RoleOption>, sqlx::Error>;
 }
 
 #[derive(Debug)]

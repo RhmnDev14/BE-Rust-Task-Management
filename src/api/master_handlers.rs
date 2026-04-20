@@ -3,7 +3,7 @@ use crate::{
     api::middleware::AuthUser,
     application::master_service::MasterService,
     domain::error::ErrorResponse,
-    domain::master::{MasterError, ProgressOption},
+    domain::master::{MasterError, ProgressOption, RoleOption},
 };
 use axum::{
     extract::State,
@@ -36,6 +36,33 @@ pub async fn get_progress_options(
     tracing::info!("Retrieving progress options");
     let options = master_service.get_progress_options().await.map_err(|e| {
         tracing::error!("Progress options retrieval failed: {:?}", e);
+        MasterAppError::from(e)
+    })?;
+    Ok(Json(options))
+}
+
+// ─── Get Role Options ────────────────────────────────────────────────────────
+
+/// Mendapatkan daftar pilihan role (master_role)
+#[utoipa::path(
+    get,
+    path = "/api/master/role",
+    responses(
+        (status = 200, description = "Daftar role options berhasil diambil", body = Vec<RoleOption>),
+        (status = 401, description = "Unauthorized - token tidak valid", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(("bearer_auth" = [])),
+    tag = "master"
+)]
+#[tracing::instrument(skip(master_service, _auth))]
+pub async fn get_role_options(
+    _auth: AuthUser,
+    State(master_service): State<Arc<MasterService>>,
+) -> Result<impl IntoResponse, MasterAppError> {
+    tracing::info!("Retrieving role options");
+    let options = master_service.get_role_options().await.map_err(|e| {
+        tracing::error!("Role options retrieval failed: {:?}", e);
         MasterAppError::from(e)
     })?;
     Ok(Json(options))

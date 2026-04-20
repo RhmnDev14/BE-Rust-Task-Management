@@ -8,7 +8,7 @@ use crate::api::group_handlers::{
     self as gh, create_group, delete_group, get_all_groups, get_group_by_id, get_group_members,
     update_group,
 };
-use crate::api::master_handlers::{self as mh, get_progress_options};
+use crate::api::master_handlers::{self as mh, get_progress_options, get_role_options};
 use crate::application::task_service::TaskService;
 use crate::application::user_service::UserService;
 use crate::application::group_service::GroupService;
@@ -16,7 +16,7 @@ use crate::application::master_service::MasterService;
 use crate::infrastructure::s3::S3Client;
 use crate::domain::task::{CreateTask, PaginatedResponse, PaginationParams, TaskResponse, UpdateTask};
 use crate::domain::group::{CreateGroup, GroupMember, GroupResponse, UpdateGroup};
-use crate::domain::master::ProgressOption;
+use crate::domain::master::{ProgressOption, RoleOption};
 use crate::domain::user::{ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UserOption, UserResponse};
 use crate::domain::error::ErrorResponse;
 use axum::{
@@ -75,6 +75,7 @@ impl Modify for BearerSecurityAddon {
         gh::update_group,
         gh::delete_group,
         mh::get_progress_options,
+        mh::get_role_options,
         s3h::get_presigned_url,
     ),
     components(
@@ -82,7 +83,7 @@ impl Modify for BearerSecurityAddon {
             CreateUser, LoginUser, UpdateUser, ChangePassword, UserResponse, UserOption, MessageResponse,
             CreateTask, UpdateTask, TaskResponse, PaginationParams, PaginatedResponse<TaskResponse>,
             CreateGroup, UpdateGroup, GroupResponse, GroupMember, PaginatedResponse<GroupResponse>,
-            ProgressOption,
+            ProgressOption, RoleOption,
             ErrorResponse,
             PresignedUrlRequest, PresignedUrlResponse
         )
@@ -136,6 +137,7 @@ pub fn create_router(
 
     let master_routes = Router::new()
         .route("/progress", get(get_progress_options))
+        .route("/role", get(mh::get_role_options))
         .with_state(master_service);
 
     let s3_routes = Router::new()

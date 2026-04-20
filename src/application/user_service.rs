@@ -184,6 +184,12 @@ impl UserService {
     }
 
     #[tracing::instrument(skip(self))]
+    pub async fn update_user_role(&self, user_id: uuid::Uuid, role_id: uuid::Uuid) -> Result<(), UserError> {
+        self.user_repository.update_role(&user_id, &role_id).await?;
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self))]
     pub async fn get_user_options(&self) -> Result<Vec<crate::domain::user::UserOption>, UserError> {
         let options = self.user_repository.find_all_options().await?;
         Ok(options)

@@ -58,6 +58,11 @@ pub struct UserOption {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct UpdateUserRoleRequest {
+    pub role_id: Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct MessageResponse {
     pub message: String,
 }
@@ -72,6 +77,7 @@ pub trait UserRepository: Send + Sync {
     async fn update(&self, id: &Uuid, user: &UpdateUser) -> Result<User, sqlx::Error>;
     async fn update_password(&self, id: &Uuid, password_hash: &str) -> Result<(), sqlx::Error>;
     async fn assign_role(&self, user_id: &Uuid, role_name: &str) -> Result<(), sqlx::Error>;
+    async fn update_role(&self, user_id: &Uuid, role_id: &Uuid) -> Result<(), sqlx::Error>;
 }
 
 #[derive(Debug)]

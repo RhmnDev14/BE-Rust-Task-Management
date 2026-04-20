@@ -1,4 +1,4 @@
-use crate::api::handlers::{self, login_user, register_user, get_user_options};
+use crate::api::handlers::{self, login_user, register_user, get_user_options, update_user_role};
 use crate::api::s3_handlers::{self as s3h, get_presigned_url, PresignedUrlRequest, PresignedUrlResponse};
 use crate::api::task_handlers::{
     self as th, create_task, delete_task, get_all_tasks, get_task_by_id, get_tasks_by_user,
@@ -17,7 +17,7 @@ use crate::infrastructure::s3::S3Client;
 use crate::domain::task::{CreateTask, PaginatedResponse, PaginationParams, TaskResponse, UpdateTask};
 use crate::domain::group::{CreateGroup, GroupMember, GroupResponse, UpdateGroup};
 use crate::domain::master::{ProgressOption, RoleOption};
-use crate::domain::user::{ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UserOption, UserResponse};
+use crate::domain::user::{ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UpdateUserRoleRequest, UserOption, UserResponse};
 use crate::domain::error::ErrorResponse;
 use axum::{
     routing::{get, post, put},
@@ -61,6 +61,7 @@ impl Modify for BearerSecurityAddon {
         handlers::update_me,
         handlers::change_password,
         handlers::get_user_options,
+        handlers::update_user_role,
         th::create_task,
         th::get_all_tasks,
         th::get_task_by_id,
@@ -80,7 +81,7 @@ impl Modify for BearerSecurityAddon {
     ),
     components(
         schemas(
-            CreateUser, LoginUser, UpdateUser, ChangePassword, UserResponse, UserOption, MessageResponse,
+            CreateUser, LoginUser, UpdateUser, UpdateUserRoleRequest, ChangePassword, UserResponse, UserOption, MessageResponse,
             CreateTask, UpdateTask, TaskResponse, PaginationParams, PaginatedResponse<TaskResponse>,
             CreateGroup, UpdateGroup, GroupResponse, GroupMember, PaginatedResponse<GroupResponse>,
             ProgressOption, RoleOption,
@@ -151,6 +152,7 @@ pub fn create_router(
         .route("/api/auth/me", get(handlers::get_me).put(handlers::update_me))
         .route("/api/auth/change-password", put(handlers::change_password))
         .route("/api/users/options", get(get_user_options))
+        .route("/api/users/:id/role", put(update_user_role))
         .with_state(user_service)
         .nest("/api/tasks", task_routes)
         .nest("/api/groups", group_routes)

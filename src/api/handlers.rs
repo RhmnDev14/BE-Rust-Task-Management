@@ -2,16 +2,20 @@
 use crate::{
     application::user_service::UserService,
     domain::error::ErrorResponse,
-    domain::user::{ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UserError, UserOption, UserResponse},
+    domain::user::{
+        ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UpdateUserRoleRequest,
+        UserError, UserOption, UserResponse,
+    },
 };
 use axum::{
-    extract::State,
+    extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
 use serde_json::json;
 use std::sync::Arc;
+use crate::api::middleware::AuthUser;
 
 /// Mendaftarkan user baru
 #[utoipa::path(
@@ -65,8 +69,6 @@ pub async fn login_user(
 
     Ok(Json(json!({ "token": token })))
 }
-
-use crate::api::middleware::AuthUser;
 
 /// Mendapatkan profil user yang sedang login
 #[utoipa::path(
@@ -182,6 +184,43 @@ pub async fn get_user_options(
     })?;
 
     Ok(Json(options))
+}
+
+/// Memperbarui role user
+#[utoipa::path(
+    put,
+    path = "/api/users/{id}/role",
+    tag = "users",
+    params(
+        ("id" = Uuid, Path, description = "User ID")
+    ),
+    request_body = UpdateUserRoleRequest,
+    responses(
+        (status = 200, description = "User role updated successfully", body = MessageResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse)
+    ),
+    security(("bearer_auth" = []))
+)]
+#[tracing::instrument(skip(user_service, _auth, id, payload))]
+pub async fn update_user_role(
+    _auth: AuthUser,
+    Path(id): Path<uuid::Uuid>,
+    State(user_service): State<Arc<UserService>>,
+    Json(payload): Json<UpdateUserRoleRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    tracing::info!("Updating role for user: {}", id);
+    user_service
+        .update_user_role(id, payload.role_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("User role update failed: {:?}", e);
+            AppError::from(e)
+        })?;
+
+    Ok(Json(MessageResponse {
+        message: "Role user berhasil diperbarui".to_string(),
+    }))
 }
 
 // Simple Error wrapper for Axum response

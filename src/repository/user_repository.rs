@@ -147,4 +147,20 @@ impl UserRepository for SqlxUserRepository {
 
         Ok(())
     }
+
+    async fn update_role(&self, user_id: &uuid::Uuid, role_id: &uuid::Uuid) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"
+            UPDATE user_role
+            SET role_id = $1
+            WHERE user_id = $2
+            "#,
+            role_id,
+            user_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
 }

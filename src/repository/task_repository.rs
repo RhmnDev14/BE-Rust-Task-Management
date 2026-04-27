@@ -19,12 +19,13 @@ impl TaskRepository for SqlxTaskRepository {
         let task = sqlx::query_as!(
             Task,
             r#"
-            INSERT INTO tasks (task_name, description, id_user)
-            VALUES ($1, $2, $3)
-            RETURNING id, task_name, description, id_user, created_at, updated_at
+            INSERT INTO tasks (task_name, description, story_point, id_user)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, task_name, description, story_point, id_user, created_at, updated_at
             "#,
             task.task_name,
             task.description,
+            task.story_point,
             id_user
         )
         .fetch_one(&self.pool)
@@ -48,7 +49,7 @@ impl TaskRepository for SqlxTaskRepository {
         let tasks = sqlx::query_as!(
             Task,
             r#"
-            SELECT id, task_name, description, id_user, created_at, updated_at
+            SELECT id, task_name, description, story_point, id_user, created_at, updated_at
             FROM tasks
             ORDER BY created_at DESC
             LIMIT $1 OFFSET $2
@@ -66,7 +67,7 @@ impl TaskRepository for SqlxTaskRepository {
         let task = sqlx::query_as!(
             Task,
             r#"
-            SELECT id, task_name, description, id_user, created_at, updated_at
+            SELECT id, task_name, description, story_point, id_user, created_at, updated_at
             FROM tasks
             WHERE id = $1
             "#,
@@ -98,7 +99,7 @@ impl TaskRepository for SqlxTaskRepository {
         let tasks = sqlx::query_as!(
             Task,
             r#"
-            SELECT id, task_name, description, id_user, created_at, updated_at
+            SELECT id, task_name, description, story_point, id_user, created_at, updated_at
             FROM tasks
             WHERE id_user = $1
             ORDER BY created_at DESC
@@ -140,7 +141,7 @@ impl TaskRepository for SqlxTaskRepository {
         let tasks = sqlx::query_as!(
             Task,
             r#"
-            SELECT id, task_name, description, id_user, created_at, updated_at
+            SELECT id, task_name, description, story_point, id_user, created_at, updated_at
             FROM tasks
             WHERE id_user = $1 AND (task_name ILIKE $2 OR description ILIKE $2)
             ORDER BY created_at DESC
@@ -165,12 +166,14 @@ impl TaskRepository for SqlxTaskRepository {
             SET
                 task_name = COALESCE($1, task_name),
                 description = COALESCE($2, description),
+                story_point = COALESCE($3, story_point),
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $3
-            RETURNING id, task_name, description, id_user, created_at, updated_at
+            WHERE id = $4
+            RETURNING id, task_name, description, story_point, id_user, created_at, updated_at
             "#,
             task.task_name,
             task.description,
+            task.story_point,
             id
         )
         .fetch_optional(&self.pool)

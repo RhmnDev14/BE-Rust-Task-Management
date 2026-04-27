@@ -9,6 +9,7 @@ pub struct Task {
     pub id: Uuid,
     pub task_name: String,
     pub description: Option<String>,
+    pub story_point: Option<i32>,
     pub id_user: Uuid,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
@@ -18,12 +19,14 @@ pub struct Task {
 pub struct CreateTask {
     pub task_name: String,
     pub description: Option<String>,
+    pub story_point: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateTask {
     pub task_name: Option<String>,
     pub description: Option<String>,
+    pub story_point: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -31,6 +34,7 @@ pub struct TaskResponse {
     pub id: Uuid,
     pub task_name: String,
     pub description: Option<String>,
+    pub story_point: Option<i32>,
     pub id_user: Uuid,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,

@@ -5,3 +5,4 @@ pub mod task_handlers;
 pub mod group_handlers;
 pub mod master_handlers;
 pub mod s3_handlers;
+pub mod notification_handlers;

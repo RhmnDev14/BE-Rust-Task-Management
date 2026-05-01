@@ -3,10 +3,12 @@ use crate::application::task_service::TaskService;
 use crate::application::user_service::UserService;
 use crate::application::group_service::GroupService;
 use crate::application::master_service::MasterService;
+use crate::application::notification_service::NotificationService;
 use crate::repository::user_repository::SqlxUserRepository;
 use crate::repository::task_repository::SqlxTaskRepository;
 use crate::repository::group_repository::SqlxGroupRepository;
 use crate::repository::master_repository::SqlxMasterRepository;
+use crate::repository::notification_repository::PostgresNotificationRepository;
 use dotenvy::dotenv;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::ConnectOptions;
@@ -66,13 +68,17 @@ async fn main() {
     let group_service = Arc::new(GroupService::new(group_repository));
 
     // Master service
-    let master_repository = Box::new(SqlxMasterRepository::new(pool));
+    let master_repository = Box::new(SqlxMasterRepository::new(pool.clone()));
     let master_service = Arc::new(MasterService::new(master_repository));
 
     // S3 client
     let s3_client = Arc::new(crate::infrastructure::s3::S3Client::new().await);
 
-    let app = create_router(user_service, task_service, group_service, master_service, s3_client);
+    // Notification service
+    let notification_repository = Box::new(PostgresNotificationRepository::new(pool.clone()));
+    let notification_service = Arc::new(NotificationService::new(notification_repository));
+
+    let app = create_router(user_service, task_service, group_service, master_service, notification_service, s3_client);
 
     let host = env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = env::var("PORT").unwrap_or_else(|_| "3000".to_string());

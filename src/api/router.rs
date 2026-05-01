@@ -8,15 +8,18 @@ use crate::api::group_handlers::{
     self as gh, create_group, delete_group, get_all_groups, get_group_by_id, get_group_members,
     update_group,
 };
-use crate::api::master_handlers::{self as mh, get_menu_options, get_progress_options, get_role_options};
+use crate::api::notification_handlers::{self as nh, get_user_notifications, mark_as_read, get_unread_count};
+use crate::api::master_handlers::{self as mh, get_progress_options};
 use crate::application::task_service::TaskService;
 use crate::application::user_service::UserService;
 use crate::application::group_service::GroupService;
 use crate::application::master_service::MasterService;
+use crate::application::notification_service::NotificationService;
 use crate::infrastructure::s3::S3Client;
 use crate::domain::task::{CreateTask, PaginatedResponse, PaginationParams, TaskResponse, UpdateTask};
 use crate::domain::group::{CreateGroup, GroupMember, GroupResponse, UpdateGroup};
 use crate::domain::master::{MenuOption, ProgressOption, RoleOption};
+use crate::domain::notification::{MarkAsReadRequest, NotificationResponse, UnreadCountResponse};
 use crate::domain::user::{ChangePassword, CreateUser, LoginUser, MessageResponse, UpdateUser, UpdateUserRoleRequest, UserOption, UserResponse};
 use crate::domain::error::ErrorResponse;
 use axum::{
@@ -78,6 +81,9 @@ impl Modify for BearerSecurityAddon {
         mh::get_progress_options,
         mh::get_role_options,
         mh::get_menu_options,
+        nh::get_user_notifications,
+        nh::mark_as_read,
+        nh::get_unread_count,
         s3h::get_presigned_url,
         s3h::get_file_view_url,
     ),
@@ -86,7 +92,7 @@ impl Modify for BearerSecurityAddon {
             CreateUser, LoginUser, UpdateUser, UpdateUserRoleRequest, ChangePassword, UserResponse, UserOption, MessageResponse,
             CreateTask, UpdateTask, TaskResponse, PaginationParams, PaginatedResponse<TaskResponse>,
             CreateGroup, UpdateGroup, GroupResponse, GroupMember, PaginatedResponse<GroupResponse>,
-            ProgressOption, RoleOption, MenuOption,
+            ProgressOption, RoleOption, MenuOption, NotificationResponse, MarkAsReadRequest, UnreadCountResponse,
             ErrorResponse,
             PresignedUrlRequest, PresignedUrlResponse
         )
@@ -98,6 +104,7 @@ impl Modify for BearerSecurityAddon {
         (name = "tasks", description = "Layanan manajemen tugas (Memerlukan JWT Token)"),
         (name = "groups", description = "Layanan manajemen grup (Memerlukan JWT Token)"),
         (name = "master", description = "Layanan data master"),
+        (name = "notifications", description = "Layanan notifikasi (Memerlukan JWT Token)"),
         (name = "s3", description = "Layanan S3/MinIO untuk file storage")
     ),
     info(
@@ -117,6 +124,7 @@ pub fn create_router(
     task_service: Arc<TaskService>,
     group_service: Arc<GroupService>,
     master_service: Arc<MasterService>,
+    notification_service: Arc<NotificationService>,
     s3_client: Arc<S3Client>,
 ) -> Router {
     let task_routes = Router::new()
@@ -149,6 +157,12 @@ pub fn create_router(
         .route("/view/:file_name", get(get_file_view_url))
         .with_state(s3_client);
 
+    let notification_routes = Router::new()
+        .route("/", get(get_user_notifications))
+        .route("/read", put(mark_as_read))
+        .route("/unread-count", get(get_unread_count))
+        .with_state(notification_service);
+
     Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/api/auth/register", post(register_user))
@@ -161,6 +175,7 @@ pub fn create_router(
         .nest("/api/tasks", task_routes)
         .nest("/api/groups", group_routes)
         .nest("/api/master", master_routes)
+        .nest("/api/notifications", notification_routes)
         .nest("/api/s3", s3_routes)
         .layer(TraceLayer::new_for_http())
 }

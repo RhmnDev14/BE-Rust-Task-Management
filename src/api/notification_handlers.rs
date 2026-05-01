@@ -86,7 +86,7 @@ pub async fn get_unread_count(
     Ok(Json(UnreadCountResponse { count }))
 }
 
-pub struct NotificationAppError(sqlx::Error);
+pub struct NotificationAppError(#[allow(dead_code)] sqlx::Error);
 
 impl From<sqlx::Error> for NotificationAppError {
     fn from(inner: sqlx::Error) -> Self {

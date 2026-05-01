@@ -53,8 +53,9 @@ pub trait GroupRepository: Send + Sync {
 
 #[derive(Debug)]
 pub enum GroupError {
-    DatabaseError(sqlx::Error),
+    DatabaseError(#[allow(dead_code)] sqlx::Error),
     GroupNotFound,
+    #[allow(dead_code)]
     Unauthorized,
 }
 

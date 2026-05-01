@@ -88,6 +88,7 @@ pub trait TaskRepository: Send + Sync {
 pub enum TaskError {
     DatabaseError(#[allow(dead_code)] sqlx::Error),
     TaskNotFound,
+    #[allow(dead_code)]
     Unauthorized,
 }
 

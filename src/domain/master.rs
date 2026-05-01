@@ -30,7 +30,7 @@ pub trait MasterRepository: Send + Sync {
 
 #[derive(Debug)]
 pub enum MasterError {
-    DatabaseError(sqlx::Error),
+    DatabaseError(#[allow(dead_code)] sqlx::Error),
 }
 
 impl From<sqlx::Error> for MasterError {
